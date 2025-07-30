@@ -2,4 +2,5 @@
 
 ## Credits
 
-- [Qt](http://www.qt.io/)
+- [GFXReconstruct](https://github.com/LunarG/gfxreconstruct)
+- [Qt](https://www.qt.io/)
