@@ -16,14 +16,31 @@ file(GLOB_RECURSE SRC_LIST
     ./src/*.cpp
 )
 
-add_executable(GFXReconstruct-Viewer ${SRC_LIST})
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 
-target_include_directories(GFXReconstruct-Viewer PRIVATE src)
+add_executable(${PROJECT_NAME} ${SRC_LIST})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets)
+
+target_include_directories(${PROJECT_NAME} PRIVATE src)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 endif()
 
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT GFXReconstruct-Viewer)
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+
+if(WIN32)
+    if(NOT WINDEPLOYQT_EXECUTABLE)
+        message(FATAL_ERROR "windeployqt executable not found. Please ensure Qt is installed correctly.")
+    endif()
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${WINDEPLOYQT_EXECUTABLE}
+        $<TARGET_FILE:${PROJECT_NAME}>
+        $<$<CONFIG:Debug>:--debug>
+        $<$<NOT:$<CONFIG:Debug>>:--release>
+    )
+endif()
