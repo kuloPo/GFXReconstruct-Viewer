@@ -14,7 +14,12 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Build types" FORCE)
 file(GLOB_RECURSE SRC_LIST
     ./src/*.c
     ./src/*.cpp
+    ./src/*.ui
 )
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 
