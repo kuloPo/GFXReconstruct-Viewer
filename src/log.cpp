@@ -62,4 +62,7 @@ void Logger::log(const char* file, int line, const char* func, Logger::Level lev
     va_end(argptr);
 
     std::cout << std::endl;
+
+    if (level == Error)
+        abort();
 }
