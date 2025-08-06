@@ -35,6 +35,12 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 endif()
 
+target_compile_options(${PROJECT_NAME}
+    PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/WX>
+        $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Werror>
+)
+
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
 if(WIN32)
