@@ -32,8 +32,15 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 endif()
+
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+        PROJ_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"
+        $<$<CONFIG:Debug>:DEBUG>
+        $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
+)
 
 target_compile_options(${PROJECT_NAME}
     PRIVATE

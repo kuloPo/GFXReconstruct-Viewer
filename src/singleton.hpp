@@ -22,45 +22,27 @@
  * SOFTWARE.
  *******************************************************************************/
 
-#include <QApplication>
-#include <QMainWindow>
-#include <QWidget>
-#include "ui_StartupWindow.h"
+#pragma once
 
-#include <iostream>
-#include "common.hpp"
-
-class MainWindow : public QMainWindow {
-    Q_OBJECT
-
+template<typename T>
+class Singleton {
 public:
-    MainWindow(QWidget* parent = nullptr)
-        : QMainWindow(parent), ui(new Ui::StartupWindow) {
-        ui->setupUi(this);
 
-        connect(ui->CloseButton, &QPushButton::clicked, this, &QMainWindow::close);
-
-        this->setWindowFlags(Qt::FramelessWindowHint);
+    static T& getInstance() {
+        static T unique_instance;
+        return unique_instance;
     }
 
-    ~MainWindow() {
-        delete ui;
-    }
+    Singleton(const Singleton&) = delete;
 
-private:
-    Ui::StartupWindow* ui;
+    Singleton(Singleton&&) = delete;
+
+    virtual ~Singleton() = default;
+
+    Singleton& operator=(const Singleton&) = delete;
+
+    Singleton& operator=(Singleton&&) = delete;
+
+protected:
+    Singleton() = default;
 };
-
-int main(int argc, char *argv[]) {
-    LOGD("Hello GFXReconstruct Viewer!");
-
-    QApplication app(argc, argv);
-
-    MainWindow window;
-
-    window.show();
-
-    return app.exec();
-}
-
-#include "main.moc"

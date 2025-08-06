@@ -22,45 +22,31 @@
  * SOFTWARE.
  *******************************************************************************/
 
-#include <QApplication>
-#include <QMainWindow>
-#include <QWidget>
-#include "ui_StartupWindow.h"
+#pragma once
 
-#include <iostream>
-#include "common.hpp"
+#include "singleton.hpp"
 
-class MainWindow : public QMainWindow {
-    Q_OBJECT
-
+class Logger : public Singleton<Logger> {
 public:
-    MainWindow(QWidget* parent = nullptr)
-        : QMainWindow(parent), ui(new Ui::StartupWindow) {
-        ui->setupUi(this);
+    enum Level {
+        Debug,
+        Warn,
+        Error,
+    };
 
-        connect(ui->CloseButton, &QPushButton::clicked, this, &QMainWindow::close);
+    Logger();
 
-        this->setWindowFlags(Qt::FramelessWindowHint);
-    }
+    ~Logger();
 
-    ~MainWindow() {
-        delete ui;
-    }
-
-private:
-    Ui::StartupWindow* ui;
+    void log(const char* file, int line, const char* func,
+        Level level, const char* format, ...);
 };
 
-int main(int argc, char *argv[]) {
-    LOGD("Hello GFXReconstruct Viewer!");
-
-    QApplication app(argc, argv);
-
-    MainWindow window;
-
-    window.show();
-
-    return app.exec();
-}
-
-#include "main.moc"
+#define LOG(level, fmt, ...) Logger::getInstance().log(__FILE__, __LINE__, __FUNCTION__, level, fmt, ##__VA_ARGS__)
+#ifdef DEBUG
+#define LOGD(fmt, ...) LOG(Logger::Debug, fmt, ##__VA_ARGS__)
+#else
+#define LOGD(...)
+#endif
+#define LOGW(fmt, ...) LOG(Logger::Warn, fmt, ##__VA_ARGS__)
+#define LOGE(fmt, ...) LOG(Logger::Error, fmt, ##__VA_ARGS__)

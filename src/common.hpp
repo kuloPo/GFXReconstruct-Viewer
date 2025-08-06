@@ -22,45 +22,7 @@
  * SOFTWARE.
  *******************************************************************************/
 
-#include <QApplication>
-#include <QMainWindow>
-#include <QWidget>
-#include "ui_StartupWindow.h"
+#pragma once
 
-#include <iostream>
-#include "common.hpp"
-
-class MainWindow : public QMainWindow {
-    Q_OBJECT
-
-public:
-    MainWindow(QWidget* parent = nullptr)
-        : QMainWindow(parent), ui(new Ui::StartupWindow) {
-        ui->setupUi(this);
-
-        connect(ui->CloseButton, &QPushButton::clicked, this, &QMainWindow::close);
-
-        this->setWindowFlags(Qt::FramelessWindowHint);
-    }
-
-    ~MainWindow() {
-        delete ui;
-    }
-
-private:
-    Ui::StartupWindow* ui;
-};
-
-int main(int argc, char *argv[]) {
-    LOGD("Hello GFXReconstruct Viewer!");
-
-    QApplication app(argc, argv);
-
-    MainWindow window;
-
-    window.show();
-
-    return app.exec();
-}
-
-#include "main.moc"
+#include "log.hpp"
+#include "format.h"

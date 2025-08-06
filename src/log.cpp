@@ -22,45 +22,44 @@
  * SOFTWARE.
  *******************************************************************************/
 
-#include <QApplication>
-#include <QMainWindow>
-#include <QWidget>
-#include "ui_StartupWindow.h"
-
 #include <iostream>
-#include "common.hpp"
+#include <filesystem>
+#include <cstdio>
+#include <cstdarg>
+#include "log.hpp"
 
-class MainWindow : public QMainWindow {
-    Q_OBJECT
-
-public:
-    MainWindow(QWidget* parent = nullptr)
-        : QMainWindow(parent), ui(new Ui::StartupWindow) {
-        ui->setupUi(this);
-
-        connect(ui->CloseButton, &QPushButton::clicked, this, &QMainWindow::close);
-
-        this->setWindowFlags(Qt::FramelessWindowHint);
-    }
-
-    ~MainWindow() {
-        delete ui;
-    }
-
-private:
-    Ui::StartupWindow* ui;
-};
-
-int main(int argc, char *argv[]) {
-    LOGD("Hello GFXReconstruct Viewer!");
-
-    QApplication app(argc, argv);
-
-    MainWindow window;
-
-    window.show();
-
-    return app.exec();
+Logger::Logger() {
 }
 
-#include "main.moc"
+Logger::~Logger() {
+}
+
+void Logger::log(const char* file, int line, const char* func, Logger::Level level, const char* format, ...) {
+    std::time_t now = std::time(nullptr);
+    std::cout << std::put_time(std::localtime(&now), "%c ");
+
+    const char* infoStr = nullptr;
+    switch (level) {
+    case Debug:
+        infoStr = "\x1b[39;1mDEBUG: \x1b[30;1m(%s:%d) \x1b[0m";
+        break;
+    case Warn:
+        infoStr = "\x1b[33;1mWARN: \x1b[30;1m(%s:%d) \x1b[0m";
+        break;
+    case Error:
+        infoStr = "\x1b[31;1mERROR: \x1b[30;1m(%s:%d) \x1b[0m";
+        break;
+    default:
+        LOGE("Unknown log level!");
+    }
+
+    std::filesystem::path file_path = std::filesystem::proximate(file, PROJ_DIR);
+    printf(infoStr, file_path.string().c_str(), line, func);
+
+    va_list argptr;
+    va_start(argptr, format);
+    vprintf(format, argptr);
+    va_end(argptr);
+
+    std::cout << std::endl;
+}
