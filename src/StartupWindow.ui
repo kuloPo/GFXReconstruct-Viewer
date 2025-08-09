@@ -27,6 +27,18 @@
      <string>X</string>
     </property>
    </widget>
+   <widget class="QOpenGLWidget" name="background">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>600</width>
+      <height>300</height>
+     </rect>
+    </property>
+   </widget>
+   <zorder>background</zorder>
+   <zorder>CloseButton</zorder>
   </widget>
  </widget>
  <resources/>

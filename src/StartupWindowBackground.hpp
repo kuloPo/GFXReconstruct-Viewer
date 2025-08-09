@@ -22,51 +22,34 @@
  * SOFTWARE.
  *******************************************************************************/
 
-#include <QApplication>
-#include <QMainWindow>
-#include <QWidget>
+#pragma once
 
-#include "ui_StartupWindow.h"
-#include "StartupWindowBackground.hpp"
+#include <QOpenGLWidget>
+#include <QOpenGLExtraFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLBuffer>
 
-#include <iostream>
-#include "common.hpp"
-
-class MainWindow : public QMainWindow {
+class Background : public QOpenGLWidget, protected QOpenGLExtraFunctions
+{
     Q_OBJECT
 
 public:
-    MainWindow(QWidget* parent = nullptr)
-        : QMainWindow(parent), ui(new Ui::StartupWindow) {
-        ui->setupUi(this);
-
-        ui->background = new Background(ui->centralwidget);
-        ui->background->resize(this->size());
-        ui->CloseButton->raise();
-
-        connect(ui->CloseButton, &QPushButton::clicked, this, &QMainWindow::close);
-
-        this->setWindowFlags(Qt::FramelessWindowHint);
-    }
-
-    ~MainWindow() {
-        delete ui;
-    }
+    explicit Background(QWidget* parent = nullptr);
+    ~Background();
 
 private:
-    Ui::StartupWindow* ui;
+    void initializeGL() override;
+    void paintGL() override;
+
+    GLuint compileShader(GLenum type, const char* source);
+    GLuint createShaderProgram(GLuint vertexShader, GLuint fragmentShader, GLuint computeShader);
+
+private:
+    int i32TrianglePerRow;
+    int i32TrianglePerCol;
+    int i32TriangleCount;
+    int i32VertexCount;
+
+    GLuint computeProgram;
+    GLuint renderProgram;
 };
-
-int main(int argc, char *argv[]) {
-    LOGD("Hello GFXReconstruct Viewer!");
-
-    QApplication app(argc, argv);
-
-    MainWindow window;
-
-    window.show();
-
-    return app.exec();
-}
-
-#include "main.moc"
