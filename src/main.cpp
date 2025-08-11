@@ -42,7 +42,11 @@ public:
 
         ui->background = new Background(ui->centralwidget);
         ui->background->resize(this->size());
+
         ui->CloseButton->raise();
+        ui->RecordButton->raise();
+        ui->ReplayButton->raise();
+        ui->OpenButton->raise();
 
         connect(ui->CloseButton, &QPushButton::clicked, this, &QMainWindow::close);
 
