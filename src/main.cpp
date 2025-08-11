@@ -32,12 +32,12 @@
 #include <iostream>
 #include "common.hpp"
 
-class MainWindow : public QMainWindow {
+class StartupWindow : public QWidget {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget* parent = nullptr)
-        : QMainWindow(parent), ui(new Ui::StartupWindow) {
+    StartupWindow(QWidget* parent = nullptr)
+        : QWidget(parent), ui(new Ui::StartupWindow) {
         ui->setupUi(this);
 
         ui->background = new Background(ui->centralwidget);
@@ -55,12 +55,12 @@ public:
         ui->NextButton->hide();
         ui->BackButton->hide();
 
-        connect(ui->CloseButton, &QPushButton::clicked, this, &QMainWindow::close);
+        connect(ui->CloseButton, &QPushButton::clicked, this, &QWidget::close);
 
-        this->setWindowFlags(Qt::FramelessWindowHint);
+        setWindowFlags(Qt::FramelessWindowHint | Qt::Window);
     }
 
-    ~MainWindow() {
+    ~StartupWindow() {
         delete ui->background;
         delete ui;
     }
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 
     QApplication app(argc, argv);
 
-    MainWindow window;
+    StartupWindow window;
 
     window.show();
 
