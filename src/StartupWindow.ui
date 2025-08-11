@@ -109,11 +109,47 @@ color: rgb(244, 205, 249);</string>
      <string>Open</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="NextButton">
+    <property name="geometry">
+     <rect>
+      <x>550</x>
+      <y>275</y>
+      <width>50</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(111, 157, 236);
+color: rgb(244, 205, 249);</string>
+    </property>
+    <property name="text">
+     <string>Next</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="BackButton">
+    <property name="geometry">
+     <rect>
+      <x>500</x>
+      <y>275</y>
+      <width>50</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(111, 157, 236);
+color: rgb(244, 205, 249);</string>
+    </property>
+    <property name="text">
+     <string>Back</string>
+    </property>
+   </widget>
    <zorder>background</zorder>
    <zorder>CloseButton</zorder>
    <zorder>RecordButton</zorder>
    <zorder>ReplayButton</zorder>
    <zorder>OpenButton</zorder>
+   <zorder>NextButton</zorder>
+   <zorder>BackButton</zorder>
   </widget>
  </widget>
  <resources/>
