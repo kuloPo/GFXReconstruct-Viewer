@@ -195,6 +195,14 @@ Background::Background(QWidget* parent)
 
 Background::~Background()
 {
+    glDeleteProgram(renderProgram);
+    glDeleteProgram(computeProgram);
+    glDeleteTextures(1, &tbo);
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &colorBuffer);
+    glDeleteBuffers(1, &ebo);
+    glDeleteBuffers(1, &vbo);
+
     makeCurrent();
     doneCurrent();
 }
@@ -219,14 +227,10 @@ void Background::initializeGL()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    GLuint vbo;
     glGenBuffers(1, &vbo);
-    GLuint ebo;
     glGenBuffers(1, &ebo);
-    GLuint colorBuffer;
     glGenBuffers(1, &colorBuffer);
 
-    GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
@@ -239,7 +243,6 @@ void Background::initializeGL()
     glBindBuffer(GL_UNIFORM_BUFFER, colorBuffer);
     glBufferData(GL_UNIFORM_BUFFER, i32TriangleCount * 4 * sizeof(float), nullptr, GL_STATIC_DRAW);
 
-    GLuint tbo;
     glGenTextures(1, &tbo);
     glBindTexture(GL_TEXTURE_BUFFER, tbo);
     glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, colorBuffer);

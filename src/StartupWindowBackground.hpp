@@ -45,11 +45,11 @@ private:
     GLuint createShaderProgram(GLuint vertexShader, GLuint fragmentShader, GLuint computeShader);
 
 private:
-    int i32TrianglePerRow;
-    int i32TrianglePerCol;
-    int i32TriangleCount;
-    int i32VertexCount;
+    int i32TrianglePerRow, i32TrianglePerCol;
+    int i32TriangleCount, i32VertexCount;
 
-    GLuint computeProgram;
-    GLuint renderProgram;
+    GLuint vbo, ebo, colorBuffer;
+    GLuint vao;
+    GLuint tbo;
+    GLuint computeProgram, renderProgram;
 };

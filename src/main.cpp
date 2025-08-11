@@ -61,6 +61,7 @@ public:
     }
 
     ~MainWindow() {
+        delete ui->background;
         delete ui;
     }
 
