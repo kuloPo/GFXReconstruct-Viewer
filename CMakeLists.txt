@@ -12,9 +12,9 @@ endif()
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Build types" FORCE)
 
 file(GLOB_RECURSE SRC_LIST
-    ./src/*.c
     ./src/*.cpp
-    ./src/*.ui
+    ./src/ui/*.cpp
+    ./src/ui/*.ui
 )
 
 set(CMAKE_AUTOMOC ON)
@@ -28,6 +28,7 @@ add_executable(${PROJECT_NAME} ${SRC_LIST})
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGLWidgets)
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_include_directories(${PROJECT_NAME} PRIVATE src/ui)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
