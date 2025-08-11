@@ -22,21 +22,34 @@
  * SOFTWARE.
  *******************************************************************************/
 
-#include <QApplication>
-
 #include "StartupWindow.hpp"
 
-#include <iostream>
-#include "common.hpp"
+StartupWindow::StartupWindow(QWidget* parent)
+    : QWidget(parent), ui(new Ui::StartupWindow)
+{
+    ui->setupUi(this);
 
-int main(int argc, char *argv[]) {
-    LOGD("Hello GFXReconstruct Viewer!");
+    ui->background = new Background(ui->centralwidget);
 
-    QApplication app(argc, argv);
+    ui->background->resize(this->size());
 
-    StartupWindow window;
+    ui->CloseButton->raise();
+    ui->RecordButton->raise();
+    ui->ReplayButton->raise();
+    ui->OpenButton->raise();
 
-    window.show();
+    ui->NextButton->raise();
+    ui->BackButton->raise();
 
-    return app.exec();
+    ui->NextButton->hide();
+    ui->BackButton->hide();
+
+    connect(ui->CloseButton, &QPushButton::clicked, this, &QWidget::close);
+
+    setWindowFlags(Qt::FramelessWindowHint | Qt::Window);
+}
+
+StartupWindow::~StartupWindow() {
+    delete ui->background;
+    delete ui;
 }

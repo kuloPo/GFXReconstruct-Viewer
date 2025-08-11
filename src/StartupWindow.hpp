@@ -22,21 +22,20 @@
  * SOFTWARE.
  *******************************************************************************/
 
-#include <QApplication>
+#pragma once
 
-#include "StartupWindow.hpp"
+#include <QWidget>
 
-#include <iostream>
-#include "common.hpp"
+#include "ui_StartupWindow.h"
+#include "StartupWindowBackground.hpp"
 
-int main(int argc, char *argv[]) {
-    LOGD("Hello GFXReconstruct Viewer!");
+class StartupWindow : public QWidget {
+    Q_OBJECT
 
-    QApplication app(argc, argv);
+public:
+    StartupWindow(QWidget* parent = nullptr);
+    ~StartupWindow();
 
-    StartupWindow window;
-
-    window.show();
-
-    return app.exec();
-}
+private:
+    Ui::StartupWindow* ui;
+};
