@@ -24,16 +24,17 @@
 
 #include "StartupWindow.hpp"
 
+#include "common.hpp"
+
 StartupWindow::StartupWindow(QWidget* parent)
-    : QWidget(parent), ui(new Ui::StartupWindow)
+    : QWidget(parent), ui(new Ui::StartupWindow), m_eCurrentPage(Page::Startup)
 {
     ui->setupUi(this);
-
     ui->background = new Background(ui->centralwidget);
-
     ui->background->resize(this->size());
 
     ui->CloseButton->raise();
+
     ui->RecordButton->raise();
     ui->ReplayButton->raise();
     ui->OpenButton->raise();
@@ -45,6 +46,7 @@ StartupWindow::StartupWindow(QWidget* parent)
     ui->BackButton->hide();
 
     connect(ui->CloseButton, &QPushButton::clicked, this, &QWidget::close);
+    connect(ui->RecordButton, &QPushButton::clicked, this, &StartupWindow::OnRecordButtonClicked);
 
     setWindowFlags(Qt::FramelessWindowHint | Qt::Window);
 }
@@ -52,4 +54,28 @@ StartupWindow::StartupWindow(QWidget* parent)
 StartupWindow::~StartupWindow() {
     delete ui->background;
     delete ui;
+}
+
+void StartupWindow::FlipPage(Page page) {
+    switch (page)
+    {
+        case StartupWindow::Page::Startup:
+            break;
+        case StartupWindow::Page::Record:
+            ui->RecordButton->hide();
+            ui->ReplayButton->hide();
+            ui->OpenButton->hide();
+            ui->NextButton->show();
+            ui->BackButton->hide();
+            break;
+        default:
+            LOGE("Unknown enum page %d", page);
+    }
+    LOGD("Flip from page %d to %d", m_eCurrentPage, page);
+    m_eCurrentPage = page;
+}
+
+void StartupWindow::OnRecordButtonClicked() {
+    LOGD("Record button clicked");
+    FlipPage(Page::Record);
 }

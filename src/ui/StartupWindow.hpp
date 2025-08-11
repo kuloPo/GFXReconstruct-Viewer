@@ -37,5 +37,15 @@ public:
     ~StartupWindow();
 
 private:
+    enum class Page {
+        Startup,
+        Record,
+    };
+
+    void FlipPage(Page page);
+    void OnRecordButtonClicked();
+
+private:
     Ui::StartupWindow* ui;
+    Page m_eCurrentPage;
 };
