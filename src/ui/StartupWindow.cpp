@@ -27,7 +27,7 @@
 #include "common.hpp"
 
 StartupWindow::StartupWindow(QWidget* parent)
-    : QWidget(parent), ui(new Ui::StartupWindow), m_eCurrentPage(Page::Startup)
+    : QWidget(parent), ui(new Ui::StartupWindow), m_eCurrentPage(Page::Startup), m_ListModel(this)
 {
     ui->setupUi(this);
     ui->background = new Background(ui->centralwidget);
@@ -42,11 +42,18 @@ StartupWindow::StartupWindow(QWidget* parent)
     ui->NextButton->raise();
     ui->BackButton->raise();
 
+    ui->SelectListView->raise();
+
     ui->NextButton->hide();
     ui->BackButton->hide();
+    ui->SelectListView->hide();
 
     connect(ui->CloseButton, &QPushButton::clicked, this, &QWidget::close);
     connect(ui->RecordButton, &QPushButton::clicked, this, &StartupWindow::OnRecordButtonClicked);
+    connect(ui->NextButton, &QPushButton::clicked, this, &StartupWindow::OnNextButtonClicked);
+    connect(ui->BackButton, &QPushButton::clicked, this, &StartupWindow::OnBackButtonClicked);
+
+    ui->SelectListView->setModel(&m_ListModel);
 
     setWindowFlags(Qt::FramelessWindowHint | Qt::Window);
 }
@@ -61,6 +68,12 @@ void StartupWindow::FlipPage(Page page) {
     {
         case StartupWindow::Page::Startup:
         {
+            ui->RecordButton->show();
+            ui->ReplayButton->show();
+            ui->OpenButton->show();
+            ui->NextButton->hide();
+            ui->BackButton->hide();
+            ui->SelectListView->hide();
             break;
         }
         case StartupWindow::Page::Record:
@@ -69,12 +82,19 @@ void StartupWindow::FlipPage(Page page) {
             ui->ReplayButton->hide();
             ui->OpenButton->hide();
             ui->NextButton->show();
-            ui->BackButton->hide();
+            ui->BackButton->show();
+            ui->SelectListView->show();
 
             std::vector<std::string> devices = adb.GetDevices();
             LOGD("ADB device num %d", devices.size());
             for (std::string device : devices)
                 LOGD("%s", device.c_str());
+
+            QStringList rows;
+            for (std::string device : devices) {
+                rows << QString(QString::fromStdString(device));
+            }
+            m_ListModel.setStringList(rows);
 
             break;
         }
@@ -90,4 +110,37 @@ void StartupWindow::FlipPage(Page page) {
 void StartupWindow::OnRecordButtonClicked() {
     LOGD("Record button clicked");
     FlipPage(Page::Record);
+}
+
+void StartupWindow::OnNextButtonClicked() {
+    LOGD("Next button clicked");
+    switch (m_eCurrentPage) {
+        case StartupWindow::Page::Startup:
+        {
+            FlipPage(Page::Record);
+            break;
+        }
+        case StartupWindow::Page::Record:
+        {
+            QModelIndex idx = ui->SelectListView->currentIndex();
+            if (idx.isValid()) {
+                LOGD("Selected device is %s", idx.data(Qt::DisplayRole).toString().toStdString().c_str());
+            }
+            else {
+                LOGD("No device is selected");
+            }
+            break;
+        }
+    }
+}
+
+void StartupWindow::OnBackButtonClicked() {
+    LOGD("Back button clicked");
+    switch (m_eCurrentPage) {
+        case StartupWindow::Page::Record:
+        {
+            FlipPage(Page::Startup);
+            break;
+        }
+    }
 }

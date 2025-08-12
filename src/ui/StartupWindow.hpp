@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QWidget>
+#include <QStringListModel>
 
 #include "ui_StartupWindow.h"
 #include "StartupWindowBackground.hpp"
@@ -45,9 +46,12 @@ private:
 
     void FlipPage(Page page);
     void OnRecordButtonClicked();
+    void OnNextButtonClicked();
+    void OnBackButtonClicked();
 
 private:
     Ui::StartupWindow* ui;
     Page m_eCurrentPage;
     ADB adb;
+    QStringListModel m_ListModel;
 };

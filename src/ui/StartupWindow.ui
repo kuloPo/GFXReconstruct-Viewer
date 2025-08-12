@@ -13,7 +13,15 @@
   <property name="windowTitle">
    <string>GFXReconstruct Viewer</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="QWidget" name="centralwidget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>600</width>
+     <height>300</height>
+    </rect>
+   </property>
    <widget class="QPushButton" name="CloseButton">
     <property name="geometry">
      <rect>
@@ -143,6 +151,23 @@ color: rgb(244, 205, 249);</string>
      <string>Back</string>
     </property>
    </widget>
+   <widget class="QListView" name="SelectListView">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>50</y>
+      <width>256</width>
+      <height>192</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(111, 157, 236);
+color: rgb(244, 205, 249);</string>
+    </property>
+    <property name="editTriggers">
+     <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+    </property>
+   </widget>
    <zorder>background</zorder>
    <zorder>CloseButton</zorder>
    <zorder>RecordButton</zorder>
@@ -150,6 +175,7 @@ color: rgb(244, 205, 249);</string>
    <zorder>OpenButton</zorder>
    <zorder>NextButton</zorder>
    <zorder>BackButton</zorder>
+   <zorder>SelectListView</zorder>
   </widget>
  </widget>
  <resources/>
