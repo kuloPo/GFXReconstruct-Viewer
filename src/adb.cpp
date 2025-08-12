@@ -22,32 +22,30 @@
  * SOFTWARE.
  *******************************************************************************/
 
-#pragma once
-
-#include <QWidget>
-
-#include "ui_StartupWindow.h"
-#include "StartupWindowBackground.hpp"
 #include "adb.hpp"
 
-class StartupWindow : public QWidget {
-    Q_OBJECT
+#include <adb-lite/client.hpp>
+#include <sstream>
 
-public:
-    StartupWindow(QWidget* parent = nullptr);
-    ~StartupWindow();
+ADB::ADB() {
+}
 
-private:
-    enum class Page {
-        Startup,
-        Record,
-    };
+ADB::~ADB() {
+}
 
-    void FlipPage(Page page);
-    void OnRecordButtonClicked();
+std::vector<std::string> ADB::GetDevices() {
+	std::error_code ec;
+	std::string raw = adb::devices(ec, 5000);
 
-private:
-    Ui::StartupWindow* ui;
-    Page m_eCurrentPage;
-    ADB adb;
-};
+	std::vector<std::string> devices;
+	std::istringstream iss(raw);
+	std::string line;
+	while (std::getline(iss, line, '\n')) {
+		const size_t pos = line.find('\t');
+		std::string serial = line.substr(0, pos);
+		std::string status = line.substr(pos + 1);
+		if (status == "device")
+			devices.push_back(serial);
+	}
+	return devices;
+}

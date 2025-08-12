@@ -60,16 +60,28 @@ void StartupWindow::FlipPage(Page page) {
     switch (page)
     {
         case StartupWindow::Page::Startup:
+        {
             break;
+        }
         case StartupWindow::Page::Record:
+        {
             ui->RecordButton->hide();
             ui->ReplayButton->hide();
             ui->OpenButton->hide();
             ui->NextButton->show();
             ui->BackButton->hide();
+
+            std::vector<std::string> devices = adb.GetDevices();
+            LOGD("ADB device num %d", devices.size());
+            for (std::string device : devices)
+                LOGD("%s", device.c_str());
+
             break;
+        }
         default:
+        {
             LOGE("Unknown enum page %d", page);
+        }
     }
     LOGD("Flip from page %d to %d", m_eCurrentPage, page);
     m_eCurrentPage = page;

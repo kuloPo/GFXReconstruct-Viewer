@@ -24,30 +24,12 @@
 
 #pragma once
 
-#include <QWidget>
+#include <vector>
+#include <string>
 
-#include "ui_StartupWindow.h"
-#include "StartupWindowBackground.hpp"
-#include "adb.hpp"
-
-class StartupWindow : public QWidget {
-    Q_OBJECT
-
+class ADB {
 public:
-    StartupWindow(QWidget* parent = nullptr);
-    ~StartupWindow();
-
-private:
-    enum class Page {
-        Startup,
-        Record,
-    };
-
-    void FlipPage(Page page);
-    void OnRecordButtonClicked();
-
-private:
-    Ui::StartupWindow* ui;
-    Page m_eCurrentPage;
-    ADB adb;
+    ADB();
+    ~ADB();
+    std::vector<std::string> GetDevices();
 };
