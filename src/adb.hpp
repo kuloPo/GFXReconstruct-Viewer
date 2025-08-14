@@ -37,6 +37,7 @@ public:
     void ConnectDevice(std::string serial);
     std::string ShellCommand(std::string cmd);
     std::vector<std::string> GetPackages();
+    std::string GetAppAbi(std::string package);
 
 private:
     std::shared_ptr<adb::client> m_client;

@@ -25,11 +25,16 @@
 #include "adb.hpp"
 
 #include <sstream>
+#include <format>
 #include "common.hpp"
 
 #define CHECK_ADB_ERROR() if (ec) LOGE("%s failed with %s", __func__, ec.message().c_str());
 
 const int64_t g_timeout = 5000;
+
+static std::string rstrip(std::string & s) {
+	return s.substr(0, s.find_last_not_of(" \t\n\r\f\v") + 1);
+}
 
 ADB::ADB() {
 }
@@ -80,4 +85,10 @@ std::vector<std::string> ADB::GetPackages() {
 		packages.push_back(package);
 	}
 	return packages;
+}
+
+std::string ADB::GetAppAbi(std::string package) {
+	std::string cmd = std::format("dumpsys package {} | grep primaryCpuAbi | cut -d= -f2", package);
+	std::string abi = this->ShellCommand(cmd);
+	return rstrip(abi);
 }

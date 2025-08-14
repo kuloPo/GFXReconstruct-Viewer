@@ -34,14 +34,11 @@ StartupWindow::StartupWindow(QWidget* parent)
     ui->background->resize(this->size());
 
     ui->CloseButton->raise();
-
     ui->RecordButton->raise();
     ui->ReplayButton->raise();
     ui->OpenButton->raise();
-
     ui->NextButton->raise();
     ui->BackButton->raise();
-
     ui->SelectListView->raise();
 
     ui->NextButton->hide();
@@ -149,6 +146,25 @@ void StartupWindow::OnNextButtonClicked() {
             }
             else {
                 LOGD("No device is selected");
+            }
+            break;
+        }
+        case StartupWindow::Page::Activity:
+        {
+            QModelIndex idx = ui->SelectListView->currentIndex();
+            if (idx.isValid()) {
+                std::string package = idx.data(Qt::DisplayRole).toString().toStdString();
+                LOGD("Selected package is %s", package.c_str());
+                std::string abi = adb.GetAppAbi(package);
+                if (abi.size()) {
+                    LOGD("ABI of %s is %s", package.c_str(), abi.c_str());
+                }
+                else {
+                    LOGW("Failed to get ABI of %s", package.c_str());
+                }
+            }
+            else {
+                LOGD("No package is selected");
             }
             break;
         }
