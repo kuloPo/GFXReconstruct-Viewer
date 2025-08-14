@@ -85,14 +85,31 @@ void StartupWindow::FlipPage(Page page) {
             ui->BackButton->show();
             ui->SelectListView->show();
 
+            QStringList rows;
+            m_ListModel.setStringList(rows);
+
             std::vector<std::string> devices = adb.GetDevices();
             LOGD("ADB device num %d", devices.size());
             for (std::string device : devices)
                 LOGD("%s", device.c_str());
 
-            QStringList rows;
             for (std::string device : devices) {
                 rows << QString(QString::fromStdString(device));
+            }
+            m_ListModel.setStringList(rows);
+
+            break;
+        }
+        case StartupWindow::Page::Activity:
+        {
+            QStringList rows;
+            m_ListModel.setStringList(rows);
+
+            std::vector<std::string> packages = adb.GetPackages();
+            LOGD("package num %d", packages.size());
+            for (std::string package : packages) {
+                LOGD("%s", package.c_str());
+                rows << QString(QString::fromStdString(package));
             }
             m_ListModel.setStringList(rows);
 
@@ -124,7 +141,11 @@ void StartupWindow::OnNextButtonClicked() {
         {
             QModelIndex idx = ui->SelectListView->currentIndex();
             if (idx.isValid()) {
-                LOGD("Selected device is %s", idx.data(Qt::DisplayRole).toString().toStdString().c_str());
+                std::string serial = idx.data(Qt::DisplayRole).toString().toStdString();
+                LOGD("Selected device is %s", serial.c_str());
+                adb.ConnectDevice(serial);
+                LOGD("Connected with %s", serial.c_str());
+                FlipPage(Page::Activity);
             }
             else {
                 LOGD("No device is selected");
@@ -140,6 +161,11 @@ void StartupWindow::OnBackButtonClicked() {
         case StartupWindow::Page::Record:
         {
             FlipPage(Page::Startup);
+            break;
+        }
+        case StartupWindow::Page::Activity:
+        {
+            FlipPage(Page::Record);
             break;
         }
     }

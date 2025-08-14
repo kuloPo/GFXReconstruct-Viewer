@@ -27,9 +27,17 @@
 #include <vector>
 #include <string>
 
+#include <adb-lite/client.hpp>
+
 class ADB {
 public:
     ADB();
     ~ADB();
     std::vector<std::string> GetDevices();
+    void ConnectDevice(std::string serial);
+    std::string ShellCommand(std::string cmd);
+    std::vector<std::string> GetPackages();
+
+private:
+    std::shared_ptr<adb::client> m_client;
 };

@@ -24,8 +24,12 @@
 
 #include "adb.hpp"
 
-#include <adb-lite/client.hpp>
 #include <sstream>
+#include "common.hpp"
+
+#define CHECK_ADB_ERROR() if (ec) LOGE("%s failed with %s", __func__, ec.message().c_str());
+
+const int64_t g_timeout = 5000;
 
 ADB::ADB() {
 }
@@ -35,7 +39,8 @@ ADB::~ADB() {
 
 std::vector<std::string> ADB::GetDevices() {
 	std::error_code ec;
-	std::string raw = adb::devices(ec, 5000);
+	std::string raw = adb::devices(ec, g_timeout);
+	CHECK_ADB_ERROR();
 
 	std::vector<std::string> devices;
 	std::istringstream iss(raw);
@@ -48,4 +53,31 @@ std::vector<std::string> ADB::GetDevices() {
 			devices.push_back(serial);
 	}
 	return devices;
+}
+
+void ADB::ConnectDevice(std::string serial) {
+	std::error_code ec;
+	m_client = adb::client::create(serial);
+	m_client->start();
+	m_client->connect(ec, g_timeout);
+	CHECK_ADB_ERROR();
+}
+
+std::string ADB::ShellCommand(std::string cmd) {
+	std::error_code ec;
+	std::string result = m_client->shell(cmd, ec, g_timeout);
+	CHECK_ADB_ERROR();
+	return result;
+}
+
+std::vector<std::string> ADB::GetPackages() {
+	std::vector<std::string> packages;
+	std::string raw = this->ShellCommand("pm list packages -3");
+	std::istringstream iss(raw);
+	std::string line;
+	while (std::getline(iss, line, '\n')) {
+		std::string package = line.substr(strlen("package:"));
+		packages.push_back(package);
+	}
+	return packages;
 }

@@ -42,6 +42,7 @@ private:
     enum class Page {
         Startup,
         Record,
+        Activity,
     };
 
     void FlipPage(Page page);
