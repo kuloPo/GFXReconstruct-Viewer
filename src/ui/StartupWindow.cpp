@@ -107,6 +107,7 @@ void StartupWindow::FlipPage(Page page) {
         case StartupWindow::Page::Activity:
         {
             ui->InputLineEdit->show();
+            ui->InputLineEdit->setPlaceholderText("DEFAULT ACTIVITY");
 
             QStringList rows;
             m_ListModel.setStringList(rows);
