@@ -51,6 +51,7 @@ StartupWindow::StartupWindow(QWidget* parent)
     connect(ui->RecordButton, &QPushButton::clicked, this, &StartupWindow::OnRecordButtonClicked);
     connect(ui->NextButton, &QPushButton::clicked, this, &StartupWindow::OnNextButtonClicked);
     connect(ui->BackButton, &QPushButton::clicked, this, &StartupWindow::OnBackButtonClicked);
+    connect(ui->SelectListView, &QListView::doubleClicked, this, &StartupWindow::OnNextButtonClicked);
 
     ui->SelectListView->setModel(&m_ListModel);
 
