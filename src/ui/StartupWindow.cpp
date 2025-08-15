@@ -40,10 +40,12 @@ StartupWindow::StartupWindow(QWidget* parent)
     ui->NextButton->raise();
     ui->BackButton->raise();
     ui->SelectListView->raise();
+    ui->InputLineEdit->raise();
 
     ui->NextButton->hide();
     ui->BackButton->hide();
     ui->SelectListView->hide();
+    ui->InputLineEdit->hide();
 
     connect(ui->CloseButton, &QPushButton::clicked, this, &QWidget::close);
     connect(ui->RecordButton, &QPushButton::clicked, this, &StartupWindow::OnRecordButtonClicked);
@@ -71,6 +73,7 @@ void StartupWindow::FlipPage(Page page) {
             ui->NextButton->hide();
             ui->BackButton->hide();
             ui->SelectListView->hide();
+            ui->InputLineEdit->hide();
             break;
         }
         case StartupWindow::Page::Record:
@@ -81,6 +84,9 @@ void StartupWindow::FlipPage(Page page) {
             ui->NextButton->show();
             ui->BackButton->show();
             ui->SelectListView->show();
+            ui->InputLineEdit->show();
+
+            ui->InputLineEdit->setPlaceholderText("Connect to new device");
 
             QStringList rows;
             m_ListModel.setStringList(rows);
@@ -99,6 +105,8 @@ void StartupWindow::FlipPage(Page page) {
         }
         case StartupWindow::Page::Activity:
         {
+            ui->InputLineEdit->show();
+
             QStringList rows;
             m_ListModel.setStringList(rows);
 
@@ -129,23 +137,30 @@ void StartupWindow::OnRecordButtonClicked() {
 void StartupWindow::OnNextButtonClicked() {
     LOGD("Next button clicked");
     switch (m_eCurrentPage) {
-        case StartupWindow::Page::Startup:
-        {
-            FlipPage(Page::Record);
-            break;
-        }
         case StartupWindow::Page::Record:
         {
             QModelIndex idx = ui->SelectListView->currentIndex();
-            if (idx.isValid()) {
-                std::string serial = idx.data(Qt::DisplayRole).toString().toStdString();
+            std::string serial;
+
+            if (!ui->InputLineEdit->text().isEmpty()) {
+                serial = ui->InputLineEdit->text().toStdString();
+                LOGD("Input new device %s", serial.c_str());
+            }
+            else if (idx.isValid()) {
+                serial = idx.data(Qt::DisplayRole).toString().toStdString();
                 LOGD("Selected device is %s", serial.c_str());
-                adb.ConnectDevice(serial);
+            }
+            else {
+                LOGD("No device is selected");
+                break;
+            }
+
+            if (adb.ConnectDevice(serial)) {
                 LOGD("Connected with %s", serial.c_str());
                 FlipPage(Page::Activity);
             }
             else {
-                LOGD("No device is selected");
+                LOGW("Failed to connect with %s", serial.c_str());
             }
             break;
         }

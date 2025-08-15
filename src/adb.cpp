@@ -60,12 +60,14 @@ std::vector<std::string> ADB::GetDevices() {
 	return devices;
 }
 
-void ADB::ConnectDevice(std::string serial) {
+bool ADB::ConnectDevice(std::string serial) {
 	std::error_code ec;
 	m_client = adb::client::create(serial);
 	m_client->start();
 	m_client->connect(ec, g_timeout);
 	CHECK_ADB_ERROR();
+	m_client->shell("ls", ec, g_timeout);
+	return ec ? false : true;
 }
 
 std::string ADB::ShellCommand(std::string cmd) {

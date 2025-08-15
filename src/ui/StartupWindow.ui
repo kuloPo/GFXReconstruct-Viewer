@@ -168,6 +168,20 @@ color: rgb(244, 205, 249);</string>
      <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
     </property>
    </widget>
+   <widget class="QLineEdit" name="InputLineEdit">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>246</y>
+      <width>256</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(111, 157, 236);
+color: rgb(244, 205, 249);</string>
+    </property>
+   </widget>
    <zorder>background</zorder>
    <zorder>CloseButton</zorder>
    <zorder>RecordButton</zorder>
@@ -176,6 +190,7 @@ color: rgb(244, 205, 249);</string>
    <zorder>NextButton</zorder>
    <zorder>BackButton</zorder>
    <zorder>SelectListView</zorder>
+   <zorder>InputLineEdit</zorder>
   </widget>
  </widget>
  <resources/>

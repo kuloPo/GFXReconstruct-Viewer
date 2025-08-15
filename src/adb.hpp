@@ -34,7 +34,7 @@ public:
     ADB();
     ~ADB();
     std::vector<std::string> GetDevices();
-    void ConnectDevice(std::string serial);
+    bool ConnectDevice(std::string serial);
     std::string ShellCommand(std::string cmd);
     std::vector<std::string> GetPackages();
     std::string GetAppAbi(std::string package);
