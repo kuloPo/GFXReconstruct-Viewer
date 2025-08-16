@@ -43,7 +43,6 @@ ADB::~ADB() {
 }
 
 std::vector<std::string> ADB::GetDevices() {
-	std::error_code ec;
 	std::string raw = adb::devices(ec, g_timeout);
 	CHECK_ADB_ERROR();
 
@@ -61,17 +60,23 @@ std::vector<std::string> ADB::GetDevices() {
 }
 
 bool ADB::ConnectDevice(std::string serial) {
-	std::error_code ec;
 	m_client = adb::client::create(serial);
 	m_client->start();
 	m_client->connect(ec, g_timeout);
 	CHECK_ADB_ERROR();
-	m_client->shell("ls", ec, g_timeout);
-	return ec ? false : true;
+	std::string result = m_client->root(ec, g_timeout);
+	if (ec) {
+		LOGW("Failed to connect %s", serial.c_str());
+		return false;
+	}
+	if (result.find("cannot") != std::string::npos) {
+		LOGW("Failed to root %s", serial.c_str());
+		return false;
+	}
+	return true;
 }
 
 std::string ADB::ShellCommand(std::string cmd) {
-	std::error_code ec;
 	std::string result = m_client->shell(cmd, ec, g_timeout);
 	CHECK_ADB_ERROR();
 	return result;
@@ -98,5 +103,11 @@ std::string ADB::GetAppAbi(std::string package) {
 
 std::string ADB::GetAppLibDir(std::string package) {
 	std::string cmd = std::format("dumpsys package {} | grep legacyNativeLibraryDir | cut -d= -f2-", package);
-	return this->ShellCommand(cmd);
+	std::string str = this->ShellCommand(cmd);
+	return rstrip(str);
+}
+
+void ADB::PushFile(std::filesystem::path src, std::string dst) {
+	m_client->push(src, dst, 777, ec, g_timeout);
+	CHECK_ADB_ERROR();
 }

@@ -39,7 +39,9 @@ public:
     std::vector<std::string> GetPackages();
     std::string GetAppAbi(std::string package);
     std::string GetAppLibDir(std::string package);
+    void PushFile(std::filesystem::path src, std::string dst);
 
 private:
+    std::error_code ec;
     std::shared_ptr<adb::client> m_client;
 };

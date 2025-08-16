@@ -24,7 +24,21 @@
 
 #include "StartupWindow.hpp"
 
+#include <filesystem>
 #include "common.hpp"
+
+static std::string ConvertAbiToArch(const std::string& abi) {
+    if (abi == "arm64-v8a")
+        return "arm64";
+    if (abi == "armeabi-v7a")
+        return "arm";
+    if (abi == "x86_64")
+        return "x86_64";
+    if (abi == "x86")
+        return "x86";
+
+    LOGE("Unknown abi %s", abi.c_str());
+}
 
 StartupWindow::StartupWindow(QWidget* parent)
     : QWidget(parent), ui(new Ui::StartupWindow), m_eCurrentPage(Page::Startup), m_ListModel(this)
@@ -170,9 +184,7 @@ void StartupWindow::OnNextButtonClicked() {
                 LOGD("Connected with %s", serial.c_str());
                 FlipPage(Page::Activity);
             }
-            else {
-                LOGW("Failed to connect with %s", serial.c_str());
-            }
+
             break;
         }
         case StartupWindow::Page::Activity:
@@ -194,6 +206,32 @@ void StartupWindow::OnNextButtonClicked() {
             LOGD("Selected activity is %s", m_strSelectedActivity.c_str());
 
             FlipPage(Page::Option);
+
+            break;
+        }
+        case StartupWindow::Page::Option:
+        {
+            std::string abi = adb.GetAppAbi(m_strSelectedPackage);
+            if (abi.empty()) {
+                LOGW("Failed to get ABI of %s", m_strSelectedPackage.c_str());
+                break;
+            }
+            if (abi == "armeabi") {
+                abi = "armeabi-v7a";
+            }
+            LOGD("ABI of %s is %s", m_strSelectedPackage.c_str(), abi.c_str());
+
+            std::string arch = ConvertAbiToArch(abi);
+
+            std::filesystem::path localRecordLayerPath = QCoreApplication::applicationDirPath().toStdString();
+            localRecordLayerPath = localRecordLayerPath / "layer" / abi / "libVkLayer_gfxreconstruct.so";
+            if (!std::filesystem::exists(localRecordLayerPath)) {
+                LOGW("Failed to find debug layer at %s", localRecordLayerPath.string().c_str());
+                break;
+            }
+
+            std::string dstPath = adb.GetAppLibDir(m_strSelectedPackage) + "/" + arch;
+            adb.PushFile(localRecordLayerPath, dstPath);
 
             break;
         }
