@@ -84,7 +84,8 @@ std::vector<std::string> ADB::GetPackages() {
 	std::string line;
 	while (std::getline(iss, line, '\n')) {
 		std::string package = line.substr(strlen("package:"));
-		packages.push_back(package);
+		if (GetAppLibDir(package).starts_with("/data/app/"))
+			packages.push_back(package);
 	}
 	return packages;
 }
@@ -93,4 +94,9 @@ std::string ADB::GetAppAbi(std::string package) {
 	std::string cmd = std::format("dumpsys package {} | grep primaryCpuAbi | cut -d= -f2", package);
 	std::string abi = this->ShellCommand(cmd);
 	return rstrip(abi);
+}
+
+std::string ADB::GetAppLibDir(std::string package) {
+	std::string cmd = std::format("dumpsys package {} | grep legacyNativeLibraryDir | cut -d= -f2-", package);
+	return this->ShellCommand(cmd);
 }

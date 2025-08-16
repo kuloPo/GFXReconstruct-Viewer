@@ -38,6 +38,7 @@ public:
     std::string ShellCommand(std::string cmd);
     std::vector<std::string> GetPackages();
     std::string GetAppAbi(std::string package);
+    std::string GetAppLibDir(std::string package);
 
 private:
     std::shared_ptr<adb::client> m_client;
