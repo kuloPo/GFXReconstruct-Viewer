@@ -106,7 +106,7 @@ void StartupWindow::FlipPage(Page page) {
         }
         case StartupWindow::Page::Activity:
         {
-            ui->InputLineEdit->show();
+            ui->SelectListView->show();
             ui->InputLineEdit->setPlaceholderText("DEFAULT ACTIVITY");
 
             QStringList rows;
@@ -119,6 +119,15 @@ void StartupWindow::FlipPage(Page page) {
                 rows << QString(QString::fromStdString(package));
             }
             m_ListModel.setStringList(rows);
+
+            break;
+        }
+        case StartupWindow::Page::Option:
+        {
+            ui->SelectListView->hide();
+            ui->InputLineEdit->show();
+
+            ui->InputLineEdit->setPlaceholderText("Input startup args");
 
             break;
         }
@@ -169,21 +178,28 @@ void StartupWindow::OnNextButtonClicked() {
         case StartupWindow::Page::Activity:
         {
             QModelIndex idx = ui->SelectListView->currentIndex();
-            if (idx.isValid()) {
-                std::string package = idx.data(Qt::DisplayRole).toString().toStdString();
-                LOGD("Selected package is %s", package.c_str());
-                std::string abi = adb.GetAppAbi(package);
-                if (abi.size()) {
-                    LOGD("ABI of %s is %s", package.c_str(), abi.c_str());
-                }
-                else {
-                    LOGW("Failed to get ABI of %s", package.c_str());
-                }
-            }
-            else {
+            if (!idx.isValid()) {
                 LOGD("No package is selected");
+                break;
             }
+
+            std::string package = idx.data(Qt::DisplayRole).toString().toStdString();
+
+            m_strSelectedPackage = package;
+            m_strSelectedActivity = ui->InputLineEdit->text().toStdString();
+            if (m_strSelectedActivity.empty())
+                m_strSelectedActivity = "android.intent.action.MAIN";
+
+            LOGD("Selected package is %s", m_strSelectedPackage.c_str());
+            LOGD("Selected activity is %s", m_strSelectedActivity.c_str());
+
+            FlipPage(Page::Option);
+
             break;
+        }
+        default:
+        {
+            LOGE("Unknown page %d when clicking next button", m_eCurrentPage);
         }
     }
 }
@@ -200,6 +216,15 @@ void StartupWindow::OnBackButtonClicked() {
         {
             FlipPage(Page::Record);
             break;
+        }
+        case StartupWindow::Page::Option:
+        {
+            FlipPage(Page::Activity);
+            break;
+        }
+        default:
+        {
+            LOGE("Unknown page %d when clicking back button", m_eCurrentPage);
         }
     }
 }

@@ -43,6 +43,7 @@ private:
         Startup,
         Record,
         Activity,
+        Option,
     };
 
     void FlipPage(Page page);
@@ -55,4 +56,6 @@ private:
     Page m_eCurrentPage;
     ADB adb;
     QStringListModel m_ListModel;
+    std::string m_strSelectedPackage;
+    std::string m_strSelectedActivity;
 };
