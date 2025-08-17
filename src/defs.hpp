@@ -22,29 +22,18 @@
  * SOFTWARE.
  *******************************************************************************/
 
-#pragma once
+#include <type_traits>
 
-#include <vector>
-#include <string>
+#define ENUM_NEXT(e)                                                         \
+    ([](auto _e){                                                            \
+        using E = decltype(_e);                                              \
+        using U = std::underlying_type_t<E>;                                 \
+        return static_cast<E>(static_cast<U>(_e) + 1);                       \
+    }(e))
 
-#include <adb-lite/client.hpp>
-
-class ADB {
-public:
-    ADB();
-    ~ADB();
-    std::vector<std::string> GetDevices();
-    bool ConnectDevice(std::string serial);
-    bool RootDevice();
-    std::string ShellCommand(std::string cmd);
-    std::vector<std::string> GetPackages();
-    std::string GetAppAbi(std::string package);
-    std::string GetAppLibDir(std::string package);
-    void PushFile(std::filesystem::path src, std::string dst);
-    bool ReplayApkInstalled();
-
-private:
-    std::error_code ec;
-    std::shared_ptr<adb::client> m_client;
-    bool m_bRooted;
-};
+#define ENUM_PREV(e)                                                         \
+    ([](auto _e){                                                            \
+        using E = decltype(_e);                                              \
+        using U = std::underlying_type_t<E>;                                 \
+        return static_cast<E>(static_cast<U>(_e) - 1);                       \
+    }(e))

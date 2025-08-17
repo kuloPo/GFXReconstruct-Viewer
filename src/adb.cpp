@@ -119,3 +119,8 @@ void ADB::PushFile(std::filesystem::path src, std::string dst) {
 	m_client->push(src, dst, 777, ec, g_timeout);
 	CHECK_ADB_ERROR();
 }
+
+bool ADB::ReplayApkInstalled() {
+	std::string cmd = "pm list packages -3 | grep com.lunarg.gfxreconstruct.replay";
+	return this->ShellCommand(cmd).length();
+}

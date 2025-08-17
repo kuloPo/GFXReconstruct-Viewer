@@ -171,6 +171,7 @@ void StartupWindow::OnNextButtonClicked() {
     LOGD("Next button clicked");
     switch (m_eCurrentPage) {
         case StartupWindow::Page::Record:
+        case StartupWindow::Page::Replay:
         {
             QModelIndex idx = ui->SelectListView->currentIndex();
             std::string serial;
@@ -190,7 +191,7 @@ void StartupWindow::OnNextButtonClicked() {
 
             if (adb.ConnectDevice(serial)) {
                 LOGD("Connected with %s", serial.c_str());
-                FlipPage(Page::Activity);
+                FlipPage(ENUM_NEXT(m_eCurrentPage));
             }
 
             break;
@@ -254,18 +255,15 @@ void StartupWindow::OnBackButtonClicked() {
     LOGD("Back button clicked");
     switch (m_eCurrentPage) {
         case StartupWindow::Page::Record:
+        case StartupWindow::Page::Replay:
         {
             FlipPage(Page::Startup);
             break;
         }
         case StartupWindow::Page::Activity:
-        {
-            FlipPage(Page::Record);
-            break;
-        }
         case StartupWindow::Page::Option:
         {
-            FlipPage(Page::Activity);
+            FlipPage(ENUM_PREV(m_eCurrentPage));
             break;
         }
         default:

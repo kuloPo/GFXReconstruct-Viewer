@@ -25,4 +25,5 @@
 #pragma once
 
 #include "log.hpp"
+#include "defs.hpp"
 #include "format.h"
