@@ -44,10 +44,12 @@ private:
         Record,
         Activity,
         Option,
+        Replay,
     };
 
     void FlipPage(Page page);
     void OnRecordButtonClicked();
+    void OnReplayButtonClicked();
     void OnNextButtonClicked();
     void OnBackButtonClicked();
 

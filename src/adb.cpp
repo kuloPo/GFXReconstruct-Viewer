@@ -64,15 +64,23 @@ bool ADB::ConnectDevice(std::string serial) {
 	m_client->start();
 	m_client->connect(ec, g_timeout);
 	CHECK_ADB_ERROR();
-	std::string result = m_client->root(ec, g_timeout);
 	if (ec) {
 		LOGW("Failed to connect %s", serial.c_str());
 		return false;
 	}
+	m_bRooted = false;
+	return true;
+}
+
+bool ADB::RootDevice() {
+	if (m_bRooted)
+		return true;
+	std::string result = m_client->root(ec, g_timeout);
 	if (result.find("cannot") != std::string::npos) {
-		LOGW("Failed to root %s", serial.c_str());
+		LOGW("Failed to root device");
 		return false;
 	}
+	m_bRooted = true;
 	return true;
 }
 

@@ -35,6 +35,7 @@ public:
     ~ADB();
     std::vector<std::string> GetDevices();
     bool ConnectDevice(std::string serial);
+    bool RootDevice();
     std::string ShellCommand(std::string cmd);
     std::vector<std::string> GetPackages();
     std::string GetAppAbi(std::string package);
@@ -44,4 +45,5 @@ public:
 private:
     std::error_code ec;
     std::shared_ptr<adb::client> m_client;
+    bool m_bRooted;
 };

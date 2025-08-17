@@ -38,6 +38,7 @@ static std::string ConvertAbiToArch(const std::string& abi) {
         return "x86";
 
     LOGE("Unknown abi %s", abi.c_str());
+    return abi;
 }
 
 StartupWindow::StartupWindow(QWidget* parent)
@@ -63,6 +64,7 @@ StartupWindow::StartupWindow(QWidget* parent)
 
     connect(ui->CloseButton, &QPushButton::clicked, this, &QWidget::close);
     connect(ui->RecordButton, &QPushButton::clicked, this, &StartupWindow::OnRecordButtonClicked);
+    connect(ui->ReplayButton, &QPushButton::clicked, this, &StartupWindow::OnReplayButtonClicked);
     connect(ui->NextButton, &QPushButton::clicked, this, &StartupWindow::OnNextButtonClicked);
     connect(ui->BackButton, &QPushButton::clicked, this, &StartupWindow::OnBackButtonClicked);
     connect(ui->SelectListView, &QListView::doubleClicked, this, &StartupWindow::OnNextButtonClicked);
@@ -92,6 +94,7 @@ void StartupWindow::FlipPage(Page page) {
             break;
         }
         case StartupWindow::Page::Record:
+        case StartupWindow::Page::Replay:
         {
             ui->RecordButton->hide();
             ui->ReplayButton->hide();
@@ -157,6 +160,11 @@ void StartupWindow::FlipPage(Page page) {
 void StartupWindow::OnRecordButtonClicked() {
     LOGD("Record button clicked");
     FlipPage(Page::Record);
+}
+
+void StartupWindow::OnReplayButtonClicked() {
+    LOGD("Replay button clicked");
+    FlipPage(Page::Replay);
 }
 
 void StartupWindow::OnNextButtonClicked() {
