@@ -45,6 +45,7 @@ private:
         Activity,
         Option,
         Replay,
+        FileSelect,
     };
 
     void FlipPage(Page page);
@@ -52,6 +53,7 @@ private:
     void OnReplayButtonClicked();
     void OnNextButtonClicked();
     void OnBackButtonClicked();
+    void OnFileSelectButtonClicked();
 
 private:
     Ui::StartupWindow* ui;

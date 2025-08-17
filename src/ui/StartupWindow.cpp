@@ -24,6 +24,8 @@
 
 #include "StartupWindow.hpp"
 
+#include <QFileDialog>
+
 #include <filesystem>
 #include "common.hpp"
 
@@ -54,11 +56,13 @@ StartupWindow::StartupWindow(QWidget* parent)
     ui->OpenButton->raise();
     ui->NextButton->raise();
     ui->BackButton->raise();
+    ui->FileSelectButton->raise();
     ui->SelectListView->raise();
     ui->InputLineEdit->raise();
 
     ui->NextButton->hide();
     ui->BackButton->hide();
+    ui->FileSelectButton->hide();
     ui->SelectListView->hide();
     ui->InputLineEdit->hide();
 
@@ -67,6 +71,7 @@ StartupWindow::StartupWindow(QWidget* parent)
     connect(ui->ReplayButton, &QPushButton::clicked, this, &StartupWindow::OnReplayButtonClicked);
     connect(ui->NextButton, &QPushButton::clicked, this, &StartupWindow::OnNextButtonClicked);
     connect(ui->BackButton, &QPushButton::clicked, this, &StartupWindow::OnBackButtonClicked);
+    connect(ui->FileSelectButton, &QPushButton::clicked, this, &StartupWindow::OnFileSelectButtonClicked);
     connect(ui->SelectListView, &QListView::doubleClicked, this, &StartupWindow::OnNextButtonClicked);
 
     ui->SelectListView->setModel(&m_ListModel);
@@ -99,10 +104,13 @@ void StartupWindow::FlipPage(Page page) {
             ui->RecordButton->hide();
             ui->ReplayButton->hide();
             ui->OpenButton->hide();
+            ui->FileSelectButton->hide();
             ui->NextButton->show();
             ui->BackButton->show();
             ui->SelectListView->show();
             ui->InputLineEdit->show();
+
+            ui->NextButton->setText("Next");
 
             ui->InputLineEdit->setPlaceholderText("Connect to new device");
 
@@ -148,6 +156,17 @@ void StartupWindow::FlipPage(Page page) {
 
             break;
         }
+        case StartupWindow::Page::FileSelect:
+        {
+            ui->FileSelectButton->show();
+            ui->SelectListView->hide();
+            ui->InputLineEdit->show();
+
+            ui->NextButton->setText("Replay");
+            ui->InputLineEdit->setPlaceholderText("Select replay file");
+
+            break;
+        }
         default:
         {
             LOGE("Unknown enum page %d", page);
@@ -165,6 +184,11 @@ void StartupWindow::OnRecordButtonClicked() {
 void StartupWindow::OnReplayButtonClicked() {
     LOGD("Replay button clicked");
     FlipPage(Page::Replay);
+}
+
+void StartupWindow::OnFileSelectButtonClicked() {
+    QString filepath = QFileDialog::getOpenFileName(this, "Open capture");
+    ui->InputLineEdit->setText(filepath);
 }
 
 void StartupWindow::OnNextButtonClicked() {
@@ -262,6 +286,7 @@ void StartupWindow::OnBackButtonClicked() {
         }
         case StartupWindow::Page::Activity:
         case StartupWindow::Page::Option:
+        case StartupWindow::Page::FileSelect:
         {
             FlipPage(ENUM_PREV(m_eCurrentPage));
             break;

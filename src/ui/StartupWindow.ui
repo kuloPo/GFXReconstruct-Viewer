@@ -182,6 +182,23 @@ color: rgb(244, 205, 249);</string>
 color: rgb(244, 205, 249);</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="FileSelectButton">
+    <property name="geometry">
+     <rect>
+      <x>560</x>
+      <y>246</y>
+      <width>31</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(111, 157, 236);
+color: rgb(244, 205, 249);</string>
+    </property>
+    <property name="text">
+     <string>...</string>
+    </property>
+   </widget>
    <zorder>background</zorder>
    <zorder>CloseButton</zorder>
    <zorder>RecordButton</zorder>
@@ -191,6 +208,7 @@ color: rgb(244, 205, 249);</string>
    <zorder>BackButton</zorder>
    <zorder>SelectListView</zorder>
    <zorder>InputLineEdit</zorder>
+   <zorder>FileSelectButton</zorder>
   </widget>
  </widget>
  <resources/>
