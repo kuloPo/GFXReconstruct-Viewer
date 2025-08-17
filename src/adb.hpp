@@ -40,8 +40,8 @@ public:
     std::vector<std::string> GetPackages();
     std::string GetAppAbi(std::string package);
     std::string GetAppLibDir(std::string package);
-    void PushFile(std::filesystem::path src, std::string dst);
-    bool ReplayApkInstalled();
+    bool PushFile(std::filesystem::path src, std::string dst);
+    bool InstallReplayApk(std::filesystem::path localReplayApkPath);
 
 private:
     std::error_code ec;

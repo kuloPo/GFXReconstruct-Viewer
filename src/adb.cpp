@@ -115,12 +115,35 @@ std::string ADB::GetAppLibDir(std::string package) {
 	return rstrip(str);
 }
 
-void ADB::PushFile(std::filesystem::path src, std::string dst) {
-	m_client->push(src, dst, 777, ec, g_timeout);
+bool ADB::PushFile(std::filesystem::path src, std::string dst) {
+	bool success = m_client->push(src, dst, 777, ec, g_timeout);
 	CHECK_ADB_ERROR();
+	return success;
 }
 
-bool ADB::ReplayApkInstalled() {
+bool ADB::InstallReplayApk(std::filesystem::path localReplayApkPath) {
 	std::string cmd = "pm list packages -3 | grep com.lunarg.gfxreconstruct.replay";
-	return this->ShellCommand(cmd).length();
+	if (this->ShellCommand(cmd).length()) {
+		LOGD("Replay APK already installed");
+		return true;
+	}
+
+	LOGD("Installing replay APK");
+	if (!std::filesystem::exists(localReplayApkPath)) {
+		LOGW("Failed to find replay APK at %s", localReplayApkPath.string().c_str());
+		return false;
+	}
+
+	if (!this->PushFile(localReplayApkPath, "/sdcard/Download/gfxr_replay.apk")) {
+		LOGW("Failed to push replay APK to /sdcard/Download/");
+		return false;
+	}
+
+	std::string result = this->ShellCommand("pm install -g -t -r /sdcard/Download/gfxr_replay.apk");
+	if (result.find("success") == std::string::npos) {
+		LOGW("Failed to install replay APK");
+		return false;
+	}
+
+	return true;
 }

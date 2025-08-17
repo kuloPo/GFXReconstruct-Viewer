@@ -268,6 +268,21 @@ void StartupWindow::OnNextButtonClicked() {
 
             break;
         }
+        case StartupWindow::Page::FileSelect:
+        {
+            if (ui->InputLineEdit->text().isEmpty()) {
+                LOGD("No replay file is selected");
+                break;
+            }
+
+            std::filesystem::path localReplayApkPath = QCoreApplication::applicationDirPath().toStdString();
+            localReplayApkPath = localReplayApkPath / "tools" / "replay-debug.apk";
+            if (!adb.InstallReplayApk(localReplayApkPath)) {
+                break;
+            }
+
+            break;
+        }
         default:
         {
             LOGE("Unknown page %d when clicking next button", m_eCurrentPage);
