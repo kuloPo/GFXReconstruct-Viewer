@@ -275,11 +275,32 @@ void StartupWindow::OnNextButtonClicked() {
                 break;
             }
 
+            std::filesystem::path localReplayFilePath = ui->InputLineEdit->text().toStdString();
+            if (!std::filesystem::is_regular_file(localReplayFilePath)) {
+                LOGW("Replay file %s not exists", localReplayFilePath.string().c_str());
+            }
+
             std::filesystem::path localReplayApkPath = QCoreApplication::applicationDirPath().toStdString();
             localReplayApkPath = localReplayApkPath / "tools" / "replay-debug.apk";
             if (!adb.InstallReplayApk(localReplayApkPath)) {
                 break;
             }
+
+            if (!adb.PushFile(localReplayFilePath, "/sdcard/Download/")) {
+                LOGW("Failed to push replay file");
+                break;
+            }
+
+            adb.ShellCommand("am force-stop com.lunarg.gfxreconstruct.replay");
+
+            std::string replayFileName = localReplayApkPath.filename().string();
+            std::string cmd = std::format(
+                "am start -n \"com.lunarg.gfxreconstruct.replay / android.app.NativeActivity\""
+                "-a android.intent.action.MAIN -c android.intent.category.LAUNCHER"
+                "--es \"args\" \"{}\"", replayFileName);
+            adb.ShellCommand(cmd);
+
+            FlipPage(Page::Startup);
 
             break;
         }
