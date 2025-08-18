@@ -1,3 +1,0 @@
-[submodule "external/adb-lite"]
-	path = external/adb-lite
-	url = https://github.com/kuloPo/adb-lite.git

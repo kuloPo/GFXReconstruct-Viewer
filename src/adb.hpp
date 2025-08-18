@@ -24,10 +24,11 @@
 
 #pragma once
 
+#include <QString>
+
 #include <vector>
 #include <string>
-
-#include <adb-lite/client.hpp>
+#include <filesystem>
 
 class ADB {
 public:
@@ -35,7 +36,6 @@ public:
     ~ADB();
     std::vector<std::string> GetDevices();
     bool ConnectDevice(std::string serial);
-    bool RootDevice();
     std::string ShellCommand(std::string cmd);
     std::vector<std::string> GetPackages();
     std::string GetAppAbi(std::string package);
@@ -44,7 +44,13 @@ public:
     bool InstallReplayApk(std::filesystem::path localReplayApkPath);
 
 private:
-    std::error_code ec;
-    std::shared_ptr<adb::client> m_client;
-    bool m_bRooted;
+    void runProgram(const QString& program, const QStringList& args);
+
+private:
+    int exitCode;
+    QString stdOut;
+    QString stdErr;
+    QString errorString;
+
+    std::string serial;
 };

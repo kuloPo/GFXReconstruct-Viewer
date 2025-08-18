@@ -217,6 +217,9 @@ void StartupWindow::OnNextButtonClicked() {
                 LOGD("Connected with %s", serial.c_str());
                 FlipPage(ENUM_NEXT(m_eCurrentPage));
             }
+            else {
+                LOGW("Failed to connected with %s", serial.c_str());
+            }
 
             break;
         }

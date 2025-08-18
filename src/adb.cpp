@@ -24,16 +24,28 @@
 
 #include "adb.hpp"
 
+#include <QProcess>
+
 #include <sstream>
 #include <format>
 #include "common.hpp"
 
-#define CHECK_ADB_ERROR() if (ec) LOGE("%s failed with %s", __func__, ec.message().c_str());
-
-const int64_t g_timeout = 5000;
-
-static std::string rstrip(std::string & s) {
+static std::string rstrip(const std::string & s) {
 	return s.substr(0, s.find_last_not_of(" \t\n\r\f\v") + 1);
+}
+
+void ADB::runProgram(const QString& program, const QStringList& args) {
+	QProcess p;
+	p.setProgram(program);
+	p.setArguments(args);
+	p.start();
+	p.waitForFinished(-1);
+
+	exitCode = p.exitCode();
+	stdOut = QString::fromUtf8(p.readAllStandardOutput());
+	stdErr = QString::fromUtf8(p.readAllStandardError());
+
+	LOGW("%d %s", p.error(), p.errorString().toStdString().c_str());
 }
 
 ADB::ADB() {
@@ -43,13 +55,16 @@ ADB::~ADB() {
 }
 
 std::vector<std::string> ADB::GetDevices() {
-	std::string raw = adb::devices(ec, g_timeout);
-	CHECK_ADB_ERROR();
+	runProgram("adb", {"devices"});
+
+	if (stdOut.isEmpty())
+		LOGE("adb not found!");
 
 	std::vector<std::string> devices;
-	std::istringstream iss(raw);
+	std::istringstream iss(stdOut.toStdString());
 	std::string line;
 	while (std::getline(iss, line, '\n')) {
+		line = rstrip(line);
 		const size_t pos = line.find('\t');
 		std::string serial = line.substr(0, pos);
 		std::string status = line.substr(pos + 1);
@@ -60,34 +75,19 @@ std::vector<std::string> ADB::GetDevices() {
 }
 
 bool ADB::ConnectDevice(std::string serial) {
-	m_client = adb::client::create(serial);
-	m_client->start();
-	m_client->connect(ec, g_timeout);
-	CHECK_ADB_ERROR();
-	if (ec) {
-		LOGW("Failed to connect %s", serial.c_str());
-		return false;
-	}
-	m_bRooted = false;
-	return true;
-}
+	runProgram("adb", { "connect", serial.c_str()});
 
-bool ADB::RootDevice() {
-	if (m_bRooted)
-		return true;
-	std::string result = m_client->root(ec, g_timeout);
-	if (result.find("cannot") != std::string::npos) {
-		LOGW("Failed to root device");
+	std::vector<std::string> devices = this->GetDevices();
+	if (std::find(devices.begin(), devices.end(), serial) == devices.end())
 		return false;
-	}
-	m_bRooted = true;
+
+	this->serial = serial;
 	return true;
 }
 
 std::string ADB::ShellCommand(std::string cmd) {
-	std::string result = m_client->shell(cmd, ec, g_timeout);
-	CHECK_ADB_ERROR();
-	return result;
+	runProgram("adb", { "-s", serial.c_str(), "shell", cmd.c_str() });
+	return rstrip(stdOut.toStdString());
 }
 
 std::vector<std::string> ADB::GetPackages() {
@@ -106,19 +106,20 @@ std::vector<std::string> ADB::GetPackages() {
 std::string ADB::GetAppAbi(std::string package) {
 	std::string cmd = std::format("dumpsys package {} | grep primaryCpuAbi | cut -d= -f2", package);
 	std::string abi = this->ShellCommand(cmd);
-	return rstrip(abi);
+	return abi;
 }
 
 std::string ADB::GetAppLibDir(std::string package) {
 	std::string cmd = std::format("dumpsys package {} | grep legacyNativeLibraryDir | cut -d= -f2-", package);
 	std::string str = this->ShellCommand(cmd);
-	return rstrip(str);
+	return str;
 }
 
 bool ADB::PushFile(std::filesystem::path src, std::string dst) {
-	bool success = m_client->push(src, dst, 777, ec, g_timeout);
-	CHECK_ADB_ERROR();
-	return success;
+	LOGW("serial %s src %s dst %s", serial.c_str(), src.string().c_str(), dst.c_str());
+	runProgram("adb", { "-s", serial.c_str(), "push", src.string().c_str(), dst.c_str() });
+	LOGW("%d out %s err %s", exitCode, stdOut.toStdString().c_str(), stdErr.toStdString().c_str());
+	return true;
 }
 
 bool ADB::InstallReplayApk(std::filesystem::path localReplayApkPath) {
