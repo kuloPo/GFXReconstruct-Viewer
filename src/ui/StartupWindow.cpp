@@ -296,9 +296,9 @@ void StartupWindow::OnNextButtonClicked() {
             }
 
             std::string replayFileName = localReplayFilePath.filename().string();
-            adb.ShellCommand(std::format("mv /sdcard/Download/{} /data/user/0/com.lunarg.gfxreconstruct.replay/files/", replayFileName.c_str()));
+            adb.ShellCommandAsGFXR(std::format("mv /sdcard/Download/{} /data/user/0/com.lunarg.gfxreconstruct.replay/files/", replayFileName.c_str()));
             replayFileName = "/data/user/0/com.lunarg.gfxreconstruct.replay/files/" + replayFileName;
-            adb.ShellCommand(std::format("chmod 777 {}", replayFileName.c_str()));
+            adb.ShellCommandAsGFXR(std::format("chmod 777 {}", replayFileName.c_str()));
 
             adb.ShellCommand("am force-stop com.lunarg.gfxreconstruct.replay");
 
