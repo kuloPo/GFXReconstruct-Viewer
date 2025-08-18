@@ -30,6 +30,7 @@
 
 #include <sstream>
 #include <format>
+#include <fstream>
 #include <thread>
 #include <chrono>
 #include "common.hpp"
@@ -203,4 +204,15 @@ std::string ADB::ShellCommandAsGFXR(std::string cmd) {
 		return result;
 	return this->ShellCommand(cmd);
 }
+
+bool ADB::AlreadyUploaded(std::filesystem::path local, std::string remote) {
+	std::ifstream localFile(local, std::ios::binary | std::ios::ate);
+	std::streamsize localSize = localFile.tellg();
+	
+	std::string strRemoteSize = this->ShellCommandAsGFXR(std::format("stat -c%s {}", remote));
+	std::stringstream ss(strRemoteSize);
+	size_t remoteSize = 0;
+	ss >> remoteSize;
+
+	return localSize == remoteSize;
 }
