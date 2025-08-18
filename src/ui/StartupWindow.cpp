@@ -85,6 +85,19 @@ StartupWindow::~StartupWindow() {
 }
 
 void StartupWindow::FlipPage(Page page) {
+    ui->RecordButton->hide();
+    ui->ReplayButton->hide();
+    ui->OpenButton->hide();
+    ui->NextButton->hide();
+    ui->BackButton->hide();
+    ui->FileSelectButton->hide();
+    ui->SelectListView->hide();
+    ui->InputLineEdit->hide();
+
+    ui->NextButton->setText("Next");
+    ui->InputLineEdit->setText("");
+    ui->InputLineEdit->setPlaceholderText("");
+
     switch (page)
     {
         case StartupWindow::Page::Startup:
@@ -92,27 +105,17 @@ void StartupWindow::FlipPage(Page page) {
             ui->RecordButton->show();
             ui->ReplayButton->show();
             ui->OpenButton->show();
-            ui->NextButton->hide();
-            ui->BackButton->hide();
-            ui->SelectListView->hide();
-            ui->InputLineEdit->hide();
             break;
         }
         case StartupWindow::Page::Record:
         case StartupWindow::Page::Replay:
         {
-            ui->RecordButton->hide();
-            ui->ReplayButton->hide();
-            ui->OpenButton->hide();
-            ui->FileSelectButton->hide();
+            ui->InputLineEdit->setPlaceholderText("Connect to new device");
+
             ui->NextButton->show();
             ui->BackButton->show();
             ui->SelectListView->show();
             ui->InputLineEdit->show();
-
-            ui->NextButton->setText("Next");
-
-            ui->InputLineEdit->setPlaceholderText("Connect to new device");
 
             QStringList rows;
             m_ListModel.setStringList(rows);
@@ -131,8 +134,12 @@ void StartupWindow::FlipPage(Page page) {
         }
         case StartupWindow::Page::Activity:
         {
-            ui->SelectListView->show();
             ui->InputLineEdit->setPlaceholderText("DEFAULT ACTIVITY");
+
+            ui->NextButton->show();
+            ui->BackButton->show();
+            ui->SelectListView->show();
+            ui->InputLineEdit->show();
 
             QStringList rows;
             m_ListModel.setStringList(rows);
@@ -149,21 +156,23 @@ void StartupWindow::FlipPage(Page page) {
         }
         case StartupWindow::Page::Option:
         {
-            ui->SelectListView->hide();
-            ui->InputLineEdit->show();
-
             ui->InputLineEdit->setPlaceholderText("Input startup args");
+
+            ui->NextButton->show();
+            ui->BackButton->show();
+            ui->InputLineEdit->show();
 
             break;
         }
         case StartupWindow::Page::FileSelect:
         {
-            ui->FileSelectButton->show();
-            ui->SelectListView->hide();
-            ui->InputLineEdit->show();
-
             ui->NextButton->setText("Replay");
             ui->InputLineEdit->setPlaceholderText("Select replay file");
+
+            ui->NextButton->show();
+            ui->BackButton->show();
+            ui->FileSelectButton->show();
+            ui->InputLineEdit->show();
 
             break;
         }
