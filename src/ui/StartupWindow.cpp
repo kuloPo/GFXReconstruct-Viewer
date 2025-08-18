@@ -278,6 +278,7 @@ void StartupWindow::OnNextButtonClicked() {
             std::filesystem::path localReplayFilePath = ui->InputLineEdit->text().toStdString();
             if (!std::filesystem::is_regular_file(localReplayFilePath)) {
                 LOGW("Replay file %s not exists", localReplayFilePath.string().c_str());
+                break;
             }
 
             std::filesystem::path localReplayApkPath = QCoreApplication::applicationDirPath().toStdString();
