@@ -198,5 +198,9 @@ bool ADB::InstallReplayApk(std::filesystem::path localReplayApkPath) {
 }
 
 std::string ADB::ShellCommandAsGFXR(std::string cmd) {
-	return this->ShellCommand(std::format("run-as com.lunarg.gfxreconstruct.replay sh -c '{}'", cmd));
+	std::string result = this->ShellCommand(std::format("run-as com.lunarg.gfxreconstruct.replay sh -c '{}' || echo GFXRCommandFailed", cmd));
+	if (result.find("GFXRCommandFailed") == std::string::npos)
+		return result;
+	return this->ShellCommand(cmd);
+}
 }
