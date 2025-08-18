@@ -30,6 +30,8 @@
 
 #include <sstream>
 #include <format>
+#include <thread>
+#include <chrono>
 #include "common.hpp"
 
 static std::string rstrip(const std::string & s) {
@@ -79,6 +81,17 @@ bool ADB::pushFileStreaming(std::string serial, std::filesystem::path src, std::
 			if (!p.waitForBytesWritten(-1)) return false;
 		}
 	}
+
+	size_t lastRemoteSize = 0;
+	size_t currentRemoteSize = 0;
+
+	do {
+		lastRemoteSize = currentRemoteSize;
+		std::string strRemoteSize = this->ShellCommandAsGFXR(std::format("stat -c%s {}", dst));
+		std::stringstream ss(strRemoteSize);
+		ss >> currentRemoteSize;
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	} while ((long long)currentRemoteSize < f.size() && currentRemoteSize != lastRemoteSize);
 
 	p.closeWriteChannel();
 	p.waitForFinished(-1);
