@@ -25,6 +25,8 @@
 #include "adb.hpp"
 
 #include <QProcess>
+#include <QFile>
+#include <QFileInfo>
 
 #include <sstream>
 #include <format>
@@ -44,8 +46,43 @@ void ADB::runProgram(const QString& program, const QStringList& args) {
 	exitCode = p.exitCode();
 	stdOut = QString::fromUtf8(p.readAllStandardOutput());
 	stdErr = QString::fromUtf8(p.readAllStandardError());
+}
 
-	LOGW("%d %s", p.error(), p.errorString().toStdString().c_str());
+bool ADB::pushFileStreaming(std::string serial, std::filesystem::path src, std::string dst)
+{
+	QProcess p;
+	QFile f(src);
+	if (!f.open(QIODevice::ReadOnly))
+		return false;
+
+	p.setProgram("adb");
+	p.setArguments({ "-s", serial.c_str(), "exec-in", "sh", "-c", QString("cat > %1").arg(dst.c_str()) });
+	p.setProcessChannelMode(QProcess::MergedChannels);
+	p.start();
+
+	if (!p.waitForStarted())
+		return false;
+
+	QByteArray buf;
+	buf.resize(1 << 20);
+
+	while (true) {
+		qint64 off = 0;
+		const qint64 n = f.read(buf.data(), buf.size());
+
+		if (n < 0) return false;
+		if (n == 0) break;
+
+		while (off < n) {
+			const qint64 w = p.write(buf.constData() + off, n - off);
+			if (w <= 0) return false; else off += w;
+			if (!p.waitForBytesWritten(-1)) return false;
+		}
+	}
+
+	p.closeWriteChannel();
+	p.waitForFinished(-1);
+	return (p.exitStatus() == QProcess::NormalExit && p.exitCode() == 0);
 }
 
 ADB::ADB() {
@@ -116,10 +153,8 @@ std::string ADB::GetAppLibDir(std::string package) {
 }
 
 bool ADB::PushFile(std::filesystem::path src, std::string dst) {
-	LOGW("serial %s src %s dst %s", serial.c_str(), src.string().c_str(), dst.c_str());
-	runProgram("adb", { "-s", serial.c_str(), "push", src.string().c_str(), dst.c_str() });
-	LOGW("%d out %s err %s", exitCode, stdOut.toStdString().c_str(), stdErr.toStdString().c_str());
-	return true;
+	dst = dst.ends_with('/') ? dst + src.filename().string() : dst;
+	return pushFileStreaming(serial.c_str(), src.string().c_str(), dst.c_str());
 }
 
 bool ADB::InstallReplayApk(std::filesystem::path localReplayApkPath) {

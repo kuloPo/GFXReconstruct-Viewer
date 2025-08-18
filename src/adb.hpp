@@ -45,6 +45,7 @@ public:
 
 private:
     void runProgram(const QString& program, const QStringList& args);
+    bool pushFileStreaming(std::string serial, std::filesystem::path src, std::string dst);
 
 private:
     int exitCode;
