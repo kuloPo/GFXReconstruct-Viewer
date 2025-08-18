@@ -25,6 +25,7 @@
 #include "StartupWindow.hpp"
 
 #include <QFileDialog>
+#include <QStandardPaths>
 
 #include <filesystem>
 #include "common.hpp"
@@ -196,7 +197,8 @@ void StartupWindow::OnReplayButtonClicked() {
 }
 
 void StartupWindow::OnFileSelectButtonClicked() {
-    QString filepath = QFileDialog::getOpenFileName(this, "Open capture");
+    QString filepath = QFileDialog::getOpenFileName(this, "Open capture",
+        QStandardPaths::writableLocation(QStandardPaths::DownloadLocation));
     ui->InputLineEdit->setText(filepath);
 }
 
