@@ -96,7 +96,7 @@ bool ADB::pushFileStreaming(std::string serial, std::filesystem::path src, std::
 
 	p.closeWriteChannel();
 	p.waitForFinished(-1);
-	return (p.exitStatus() == QProcess::NormalExit && p.exitCode() == 0);
+	return currentRemoteSize == f.size();
 }
 
 ADB::ADB() {
