@@ -322,7 +322,7 @@ void StartupWindow::OnNextButtonClicked() {
             std::string cmd = std::format(
                 "am start -n \"com.lunarg.gfxreconstruct.replay/android.app.NativeActivity\""
                 " -a android.intent.action.MAIN -c android.intent.category.LAUNCHER"
-                " --es \"args\" \"{}\"", replayFileName);
+                " --es \"args\" \"{}\"", remoteReplayFilePath);
             adb.ShellCommand(cmd);
 
             FlipPage(Page::Startup);
