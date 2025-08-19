@@ -199,9 +199,16 @@ bool ADB::InstallReplayApk(std::filesystem::path localReplayApkPath) {
 }
 
 std::string ADB::ShellCommandAsGFXR(std::string cmd) {
-	std::string result = this->ShellCommand(std::format("run-as com.lunarg.gfxreconstruct.replay sh -c '{}' || echo GFXRCommandFailed", cmd));
+	std::string result;
+
+	result = this->ShellCommand(std::format("run-as com.lunarg.gfxreconstruct.replay sh -c '{}' || echo GFXRCommandFailed", cmd));
 	if (result.find("GFXRCommandFailed") == std::string::npos)
 		return result;
+
+	result = this->ShellCommand(std::format("su 0 sh -c '{}' || echo GFXRCommandFailed", cmd));
+	if (result.find("GFXRCommandFailed") == std::string::npos)
+		return result;
+
 	return this->ShellCommand(cmd);
 }
 
@@ -213,6 +220,8 @@ bool ADB::AlreadyUploaded(std::filesystem::path local, std::string remote) {
 	std::stringstream ss(strRemoteSize);
 	size_t remoteSize = 0;
 	ss >> remoteSize;
+
+	LOGD("local size %zd remote size %zu", localSize, remoteSize);
 
 	return localSize == remoteSize;
 }
