@@ -46,14 +46,9 @@ public:
     bool AlreadyUploaded(std::filesystem::path local, std::string remote);
 
 private:
-    void runProgram(const QString& program, const QStringList& args);
+    std::string runProgram(const QString& program, const QStringList& args);
     bool pushFileStreaming(std::string serial, std::filesystem::path src, std::string dst);
 
 private:
-    int exitCode;
-    QString stdOut;
-    QString stdErr;
-    QString errorString;
-
     std::string serial;
 };

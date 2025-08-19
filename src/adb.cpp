@@ -39,16 +39,15 @@ static std::string rstrip(const std::string & s) {
 	return s.substr(0, s.find_last_not_of(" \t\n\r\f\v") + 1);
 }
 
-void ADB::runProgram(const QString& program, const QStringList& args) {
+std::string ADB::runProgram(const QString& program, const QStringList& args) {
 	QProcess p;
 	p.setProgram(program);
 	p.setArguments(args);
 	p.start();
 	p.waitForFinished(-1);
 
-	exitCode = p.exitCode();
-	stdOut = QString::fromUtf8(p.readAllStandardOutput());
-	stdErr = QString::fromUtf8(p.readAllStandardError());
+	QString output = QString::fromUtf8(p.readAllStandardOutput());
+	return rstrip(output.toStdString());
 }
 
 bool ADB::pushFileStreaming(std::string serial, std::filesystem::path src, std::string dst)
@@ -106,13 +105,13 @@ ADB::~ADB() {
 }
 
 std::vector<std::string> ADB::GetDevices() {
-	runProgram("adb", {"devices"});
+	std::string output = runProgram("adb", {"devices"});
 
-	if (stdOut.isEmpty())
+	if (output.empty())
 		LOGE("adb not found!");
 
 	std::vector<std::string> devices;
-	std::istringstream iss(stdOut.toStdString());
+	std::istringstream iss(output);
 	std::string line;
 	while (std::getline(iss, line, '\n')) {
 		line = rstrip(line);
@@ -137,8 +136,7 @@ bool ADB::ConnectDevice(std::string serial) {
 }
 
 std::string ADB::ShellCommand(std::string cmd) {
-	runProgram("adb", { "-s", serial.c_str(), "shell", cmd.c_str() });
-	return rstrip(stdOut.toStdString());
+	return runProgram("adb", { "-s", serial.c_str(), "shell", cmd.c_str() });
 }
 
 std::vector<std::string> ADB::GetPackages() {
