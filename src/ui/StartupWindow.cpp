@@ -305,13 +305,10 @@ void StartupWindow::OnNextButtonClicked() {
             std::string remoteReplayFilePath = "/data/user/0/com.lunarg.gfxreconstruct.replay/files/" + replayFileName;
 
             if (!adb.AlreadyUploaded(localReplayFilePath, remoteReplayFilePath)) {
-                if (!adb.PushFile(localReplayFilePath, "/sdcard/Download/")) {
+                if (!adb.PushFile(localReplayFilePath, remoteReplayFilePath)) {
                     LOGW("Failed to push replay file");
                     break;
                 }
-
-                adb.ShellCommandAsGFXR(std::format("mv /sdcard/Download/{} {}", replayFileName.c_str(), remoteReplayFilePath.c_str()));
-                adb.ShellCommandAsGFXR(std::format("chmod 777 {}", remoteReplayFilePath.c_str()));
             }
             else {
                 LOGD("Replay file %s exists", replayFileName.c_str());

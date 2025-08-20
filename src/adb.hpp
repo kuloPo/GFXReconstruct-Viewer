@@ -42,7 +42,7 @@ public:
     std::string GetAppLibDir(std::string package);
     bool PushFile(std::filesystem::path src, std::string dst);
     bool InstallReplayApk(std::filesystem::path localReplayApkPath);
-    std::string ShellCommandAsGFXR(std::string cmd);
+    std::string ShellCommandPrivileged(std::string cmd);
     bool AlreadyUploaded(std::filesystem::path local, std::string remote);
 
 private:

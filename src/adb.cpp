@@ -165,8 +165,16 @@ std::string ADB::GetAppLibDir(std::string package) {
 }
 
 bool ADB::PushFile(std::filesystem::path src, std::string dst) {
-	dst = dst.ends_with('/') ? dst + src.filename().string() : dst;
-	return pushFileStreaming(serial.c_str(), src.string().c_str(), dst.c_str());
+	std::string filename = src.filename().string();
+	dst = dst.ends_with('/') ? dst + filename : dst;
+	if (!pushFileStreaming(serial.c_str(), src.string().c_str(), dst.c_str())) {
+		std::string staging = "/sdcard/Download/" + filename;
+		if (!pushFileStreaming(serial.c_str(), src.string().c_str(), staging.c_str()))
+			return false;
+		this->ShellCommandPrivileged(std::format("mv /sdcard/Download/{} {}", filename.c_str(), dst.c_str()));
+	}
+	this->ShellCommandPrivileged(std::format("chmod 777 {}", dst.c_str()));
+	return true;
 }
 
 bool ADB::InstallReplayApk(std::filesystem::path localReplayApkPath) {
@@ -196,15 +204,15 @@ bool ADB::InstallReplayApk(std::filesystem::path localReplayApkPath) {
 	return true;
 }
 
-std::string ADB::ShellCommandAsGFXR(std::string cmd) {
+std::string ADB::ShellCommandPrivileged(std::string cmd) {
 	std::string result;
 
-	result = this->ShellCommand(std::format("run-as com.lunarg.gfxreconstruct.replay sh -c '{}' || echo GFXRCommandFailed", cmd));
-	if (result.find("GFXRCommandFailed") == std::string::npos)
+	result = this->ShellCommand(std::format("run-as com.lunarg.gfxreconstruct.replay sh -c '{}' || echo ShellCommandPrivileged $?", cmd));
+	if (result.find("ShellCommandPrivileged") == std::string::npos)
 		return result;
 
-	result = this->ShellCommand(std::format("su 0 sh -c '{}' || echo GFXRCommandFailed", cmd));
-	if (result.find("GFXRCommandFailed") == std::string::npos)
+	result = this->ShellCommand(std::format("su 0 sh -c '{}' || echo ShellCommandPrivileged $?", cmd));
+	if (result.find("ShellCommandPrivileged") == std::string::npos)
 		return result;
 
 	return this->ShellCommand(cmd);
@@ -214,7 +222,7 @@ bool ADB::AlreadyUploaded(std::filesystem::path local, std::string remote) {
 	std::ifstream localFile(local, std::ios::binary | std::ios::ate);
 	std::streamsize localSize = localFile.tellg();
 	
-	std::string strRemoteSize = this->ShellCommandAsGFXR(std::format("stat -c%s {}", remote));
+	std::string strRemoteSize = this->ShellCommandPrivileged(std::format("stat -c%s {}", remote));
 	std::stringstream ss(strRemoteSize);
 	size_t remoteSize = 0;
 	ss >> remoteSize;
