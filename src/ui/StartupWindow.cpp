@@ -60,12 +60,14 @@ StartupWindow::StartupWindow(QWidget* parent)
     ui->FileSelectButton->raise();
     ui->SelectListView->raise();
     ui->InputLineEdit->raise();
+    ui->RemoveUnsupportedBox->raise();
 
     ui->NextButton->hide();
     ui->BackButton->hide();
     ui->FileSelectButton->hide();
     ui->SelectListView->hide();
     ui->InputLineEdit->hide();
+    ui->RemoveUnsupportedBox->hide();
 
     connect(ui->CloseButton, &QPushButton::clicked, this, &QWidget::close);
     connect(ui->RecordButton, &QPushButton::clicked, this, &StartupWindow::OnRecordButtonClicked);
@@ -94,10 +96,12 @@ void StartupWindow::FlipPage(Page page) {
     ui->FileSelectButton->hide();
     ui->SelectListView->hide();
     ui->InputLineEdit->hide();
+    ui->RemoveUnsupportedBox->hide();
 
     ui->NextButton->setText("Next");
     ui->InputLineEdit->setText("");
     ui->InputLineEdit->setPlaceholderText("");
+    ui->RemoveUnsupportedBox->setChecked(false);
 
     switch (page)
     {
@@ -174,6 +178,7 @@ void StartupWindow::FlipPage(Page page) {
             ui->BackButton->show();
             ui->FileSelectButton->show();
             ui->InputLineEdit->show();
+            ui->RemoveUnsupportedBox->show();
 
             break;
         }
@@ -316,10 +321,14 @@ void StartupWindow::OnNextButtonClicked() {
 
             adb.ShellCommand("am force-stop com.lunarg.gfxreconstruct.replay");
 
+            std::string args = "";
+            if (ui->RemoveUnsupportedBox->isChecked())
+                args += "--remove-unsupported ";
+
             std::string cmd = std::format(
                 "am start -n \"com.lunarg.gfxreconstruct.replay/android.app.NativeActivity\""
                 " -a android.intent.action.MAIN -c android.intent.category.LAUNCHER"
-                " --es \"args\" \"{}\"", remoteReplayFilePath);
+                " --es \"args\" \"{}{}\"", args, remoteReplayFilePath);
             adb.ShellCommand(cmd);
 
             FlipPage(Page::Startup);

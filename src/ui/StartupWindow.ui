@@ -199,6 +199,22 @@ color: rgb(244, 205, 249);</string>
      <string>...</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="RemoveUnsupportedBox">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>60</y>
+      <width>241</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(244, 205, 249);</string>
+    </property>
+    <property name="text">
+     <string>Remove Unsupported</string>
+    </property>
+   </widget>
    <zorder>background</zorder>
    <zorder>CloseButton</zorder>
    <zorder>RecordButton</zorder>
@@ -209,6 +225,7 @@ color: rgb(244, 205, 249);</string>
    <zorder>SelectListView</zorder>
    <zorder>InputLineEdit</zorder>
    <zorder>FileSelectButton</zorder>
+   <zorder>RemoveUnsupportedBox</zorder>
   </widget>
  </widget>
  <resources/>

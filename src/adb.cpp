@@ -87,7 +87,7 @@ bool ADB::pushFileStreaming(std::string serial, std::filesystem::path src, std::
 
 	do {
 		lastRemoteSize = currentRemoteSize;
-		std::string strRemoteSize = this->ShellCommandAsGFXR(std::format("stat -c%s {}", dst));
+		std::string strRemoteSize = this->ShellCommandPrivileged(std::format("stat -c%s {}", dst));
 		std::stringstream ss(strRemoteSize);
 		ss >> currentRemoteSize;
 		std::this_thread::sleep_for(std::chrono::seconds(1));
