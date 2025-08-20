@@ -30,7 +30,10 @@
 #include <filesystem>
 #include "common.hpp"
 
-static std::string ConvertAbiToArch(const std::string& abi) {
+static std::string ConvertAbiToArch(std::string& abi) {
+    if (abi == "armeabi")
+        abi = "armeabi-v7a";
+
     if (abi == "arm64-v8a")
         return "arm64";
     if (abi == "armeabi-v7a")
@@ -268,12 +271,9 @@ void StartupWindow::OnNextButtonClicked() {
                 LOGW("Failed to get ABI of %s", m_strSelectedPackage.c_str());
                 break;
             }
-            if (abi == "armeabi") {
-                abi = "armeabi-v7a";
-            }
-            LOGD("ABI of %s is %s", m_strSelectedPackage.c_str(), abi.c_str());
 
             std::string arch = ConvertAbiToArch(abi);
+            LOGD("ABI of %s is %s arch %s", m_strSelectedPackage.c_str(), abi.c_str(), arch.c_str());
 
             std::filesystem::path localRecordLayerPath = QCoreApplication::applicationDirPath().toStdString();
             localRecordLayerPath = localRecordLayerPath / "layer" / abi / "libVkLayer_gfxreconstruct.so";
