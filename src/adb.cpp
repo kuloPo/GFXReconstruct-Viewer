@@ -145,7 +145,7 @@ std::vector<std::string> ADB::GetPackages() {
 	std::istringstream iss(raw);
 	std::string line;
 	while (std::getline(iss, line, '\n')) {
-		std::string package = line.substr(strlen("package:"));
+		std::string package = rstrip(line.substr(strlen("package:")));
 		if (GetAppLibDir(package).starts_with("/data/app/"))
 			packages.push_back(package);
 	}
@@ -159,8 +159,8 @@ std::string ADB::GetAppAbi(std::string package) {
 }
 
 std::string ADB::GetAppLibDir(std::string package) {
-	std::string cmd = std::format("dumpsys package {} | grep legacyNativeLibraryDir | cut -d= -f2-", package);
-	std::string str = this->ShellCommand(cmd);
+	std::string cmd = std::format("pm list packages -3 -f | sed -n 's/^package:\\(.*\\)base\\.apk={}$/\\1/p'", package);
+	std::string str = this->ShellCommand(cmd) + "lib/";
 	return str;
 }
 
