@@ -254,8 +254,13 @@ void StartupWindow::OnNextButtonClicked() {
 
             m_strSelectedPackage = package;
             m_strSelectedActivity = ui->InputLineEdit->text().toStdString();
-            if (m_strSelectedActivity.empty())
-                m_strSelectedActivity = "android.intent.action.MAIN";
+            if (m_strSelectedActivity.empty()) {
+                std::string cmd = std::format("cmd package resolve-activity "
+                    "-a android.intent.action.MAIN "
+                    "-c android.intent.category.LAUNCHER "
+                    "--brief {} | tail -n 1 | cut -d '/' -f2", m_strSelectedPackage);
+                m_strSelectedActivity = adb.ShellCommand(cmd);
+            }
 
             LOGD("Selected package is %s", m_strSelectedPackage.c_str());
             LOGD("Selected activity is %s", m_strSelectedActivity.c_str());
@@ -282,8 +287,16 @@ void StartupWindow::OnNextButtonClicked() {
                 break;
             }
 
-            std::string dstPath = adb.GetAppLibDir(m_strSelectedPackage) + "/" + arch;
-            adb.PushFile(localRecordLayerPath, dstPath);
+            std::string dstPath = adb.GetAppLibDir(m_strSelectedPackage) + arch + "/";
+            if (!adb.PushFile(localRecordLayerPath, dstPath)) {
+                LOGW("Failed to push layer to app lib path %s", dstPath.c_str());
+                break;
+            }
+
+            adb.SetRecordProp(m_strSelectedPackage);
+            std::string args = ui->InputLineEdit->text().toStdString();
+            adb.ShellCommand(std::format("am force-stop {}", m_strSelectedPackage));
+            adb.ShellCommand(std::format("am start -n {}/{} {}", m_strSelectedPackage, m_strSelectedActivity, args));
 
             break;
         }

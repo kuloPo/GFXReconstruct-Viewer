@@ -44,6 +44,7 @@ public:
     bool InstallReplayApk(std::filesystem::path localReplayApkPath);
     std::string ShellCommandPrivileged(std::string cmd);
     bool AlreadyUploaded(std::filesystem::path local, std::string remote);
+    void SetRecordProp(std::string package);
 
 private:
     std::string runProgram(const QString& program, const QStringList& args);

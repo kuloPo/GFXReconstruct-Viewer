@@ -207,11 +207,11 @@ bool ADB::InstallReplayApk(std::filesystem::path localReplayApkPath) {
 std::string ADB::ShellCommandPrivileged(std::string cmd) {
 	std::string result;
 
-	result = this->ShellCommand(std::format("run-as com.lunarg.gfxreconstruct.replay sh -c '{}' || echo ShellCommandPrivileged $?", cmd));
+	result = this->ShellCommand(std::format("su 0 sh -c '{}' || echo ShellCommandPrivileged $?", cmd));
 	if (result.find("ShellCommandPrivileged") == std::string::npos)
 		return result;
 
-	result = this->ShellCommand(std::format("su 0 sh -c '{}' || echo ShellCommandPrivileged $?", cmd));
+	result = this->ShellCommand(std::format("run-as com.lunarg.gfxreconstruct.replay sh -c '{}' || echo ShellCommandPrivileged $?", cmd));
 	if (result.find("ShellCommandPrivileged") == std::string::npos)
 		return result;
 
@@ -230,4 +230,11 @@ bool ADB::AlreadyUploaded(std::filesystem::path local, std::string remote) {
 	LOGD("local size %zd remote size %zu", localSize, remoteSize);
 
 	return localSize == remoteSize;
+}
+
+void ADB::SetRecordProp(std::string package) {
+	this->ShellCommand("settings put global enable_gpu_debug_layers 1");
+	this->ShellCommand(std::format("settings put global gpu_debug_app {}", package));
+	this->ShellCommand("settings put global gpu_debug_layers VK_LAYER_LUNARG_gfxreconstruct");
+	this->ShellCommand(std::format("setprop debug.gfxrecon.capture_file /sdcard/Download/{}.gfxr", package));
 }
