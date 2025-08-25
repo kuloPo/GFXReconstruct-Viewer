@@ -88,9 +88,7 @@ bool ADB::pushFileStreaming(std::string serial, std::filesystem::path src, std::
 
 	do {
 		lastRemoteSize = currentRemoteSize;
-		std::string strRemoteSize = this->ShellCommandPrivileged(std::format("stat -c%s {}", dst));
-		std::stringstream ss(strRemoteSize);
-		ss >> currentRemoteSize;
+		size_t currentRemoteSize = this->GetRemoteSize(dst);
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	} while ((long long)currentRemoteSize < f.size() && currentRemoteSize != lastRemoteSize);
 
@@ -175,7 +173,7 @@ bool ADB::PushFile(std::filesystem::path src, std::string dst) {
 		this->ShellCommandPrivileged(std::format("mv /sdcard/Download/{} {}", filename.c_str(), dst.c_str()));
 	}
 	this->ShellCommandPrivileged(std::format("chmod 777 {}", dst.c_str()));
-	return true;
+	return this->GetRemoteSize(dst);
 }
 
 bool ADB::InstallReplayApk() {
@@ -225,11 +223,7 @@ std::string ADB::ShellCommandPrivileged(std::string cmd) {
 bool ADB::AlreadyUploaded(std::filesystem::path local, std::string remote) {
 	std::ifstream localFile(local, std::ios::binary | std::ios::ate);
 	std::streamsize localSize = localFile.tellg();
-	
-	std::string strRemoteSize = this->ShellCommandPrivileged(std::format("stat -c%s {}", remote));
-	std::stringstream ss(strRemoteSize);
-	size_t remoteSize = 0;
-	ss >> remoteSize;
+	size_t remoteSize = this->GetRemoteSize(remote);
 
 	LOGD("local size %zd remote size %zu", localSize, remoteSize);
 
@@ -241,4 +235,12 @@ void ADB::SetRecordProp(std::string package) {
 	this->ShellCommand(std::format("settings put global gpu_debug_app {}", package));
 	this->ShellCommand("settings put global gpu_debug_layers VK_LAYER_LUNARG_gfxreconstruct");
 	this->ShellCommand(std::format("setprop debug.gfxrecon.capture_file /sdcard/Download/{}.gfxr", package));
+}
+
+size_t ADB::GetRemoteSize(std::string remotePath) {
+	std::string strRemoteSize = this->ShellCommandPrivileged(std::format("stat -c%s {}", remotePath));
+	std::stringstream ss(strRemoteSize);
+	size_t remoteSize = 0;
+	ss >> remoteSize;
+	return remoteSize;
 }

@@ -45,6 +45,7 @@ public:
     std::string ShellCommandPrivileged(std::string cmd);
     bool AlreadyUploaded(std::filesystem::path local, std::string remote);
     void SetRecordProp(std::string package);
+    size_t GetRemoteSize(std::string remotePath);
 
 private:
     std::string runProgram(const QString& program, const QStringList& args);
