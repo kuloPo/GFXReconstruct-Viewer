@@ -27,6 +27,7 @@
 #include <QProcess>
 #include <QFile>
 #include <QFileInfo>
+#include <QCoreApplication>
 
 #include <sstream>
 #include <format>
@@ -177,7 +178,10 @@ bool ADB::PushFile(std::filesystem::path src, std::string dst) {
 	return true;
 }
 
-bool ADB::InstallReplayApk(std::filesystem::path localReplayApkPath) {
+bool ADB::InstallReplayApk() {
+	std::filesystem::path localReplayApkPath = QCoreApplication::applicationDirPath().toStdString();
+	localReplayApkPath = localReplayApkPath / "tools" / "replay-debug.apk";
+
 	std::string cmd = "pm list packages -3 | grep com.lunarg.gfxreconstruct.replay";
 	if (this->ShellCommand(cmd).length()) {
 		LOGD("Replay APK already installed");

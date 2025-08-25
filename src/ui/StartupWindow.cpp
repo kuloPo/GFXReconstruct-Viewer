@@ -307,20 +307,18 @@ void StartupWindow::OnNextButtonClicked() {
                 break;
             }
 
+            if (!adb.InstallReplayApk()) {
+                break;
+            }
+
             std::filesystem::path localReplayFilePath = ui->InputLineEdit->text().toStdString();
+            std::string replayFileName = localReplayFilePath.filename().string();
+            std::string remoteReplayFilePath = "/data/user/0/com.lunarg.gfxreconstruct.replay/files/" + replayFileName;
+
             if (!std::filesystem::is_regular_file(localReplayFilePath)) {
                 LOGW("Replay file %s not exists", localReplayFilePath.string().c_str());
                 break;
             }
-
-            std::filesystem::path localReplayApkPath = QCoreApplication::applicationDirPath().toStdString();
-            localReplayApkPath = localReplayApkPath / "tools" / "replay-debug.apk";
-            if (!adb.InstallReplayApk(localReplayApkPath)) {
-                break;
-            }
-
-            std::string replayFileName = localReplayFilePath.filename().string();
-            std::string remoteReplayFilePath = "/data/user/0/com.lunarg.gfxreconstruct.replay/files/" + replayFileName;
 
             if (!adb.AlreadyUploaded(localReplayFilePath, remoteReplayFilePath)) {
                 if (!adb.PushFile(localReplayFilePath, remoteReplayFilePath)) {

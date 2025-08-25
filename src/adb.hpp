@@ -41,7 +41,7 @@ public:
     std::string GetAppAbi(std::string package);
     std::string GetAppLibDir(std::string package);
     bool PushFile(std::filesystem::path src, std::string dst);
-    bool InstallReplayApk(std::filesystem::path localReplayApkPath);
+    bool InstallReplayApk();
     std::string ShellCommandPrivileged(std::string cmd);
     bool AlreadyUploaded(std::filesystem::path local, std::string remote);
     void SetRecordProp(std::string package);
