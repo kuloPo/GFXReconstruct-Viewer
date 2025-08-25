@@ -36,19 +36,23 @@ public:
     ~ADB();
     std::vector<std::string> GetDevices();
     bool ConnectDevice(std::string serial);
+    QString ShellCommand(QString cmd);
     std::string ShellCommand(std::string cmd);
+    std::string ShellCommand(const char* cmd);
+    QString ShellCommandPrivileged(QString cmd);
+    std::string ShellCommandPrivileged(std::string cmd);
+    std::string ShellCommandPrivileged(const char* cmd);
     std::vector<std::string> GetPackages();
     std::string GetAppAbi(std::string package);
     std::string GetAppLibDir(std::string package);
     bool PushFile(std::filesystem::path src, std::string dst);
     bool InstallReplayApk();
-    std::string ShellCommandPrivileged(std::string cmd);
     bool AlreadyUploaded(std::filesystem::path local, std::string remote);
     void SetRecordProp(std::string package);
     size_t GetRemoteSize(std::string remotePath);
 
 private:
-    std::string runProgram(const QString& program, const QStringList& args);
+    QString runProgram(const QString& program, const QStringList& args);
     bool pushFileStreaming(std::string serial, std::filesystem::path src, std::string dst);
 
 private:

@@ -40,7 +40,7 @@ static std::string rstrip(const std::string & s) {
 	return s.substr(0, s.find_last_not_of(" \t\n\r\f\v") + 1);
 }
 
-std::string ADB::runProgram(const QString& program, const QStringList& args) {
+QString ADB::runProgram(const QString& program, const QStringList& args) {
 	QProcess p;
 	p.setProgram(program);
 	p.setArguments(args);
@@ -48,7 +48,7 @@ std::string ADB::runProgram(const QString& program, const QStringList& args) {
 	p.waitForFinished(-1);
 
 	QString output = QString::fromUtf8(p.readAllStandardOutput());
-	return rstrip(output.toStdString());
+	return output.trimmed();
 }
 
 bool ADB::pushFileStreaming(std::string serial, std::filesystem::path src, std::string dst)
@@ -104,7 +104,7 @@ ADB::~ADB() {
 }
 
 std::vector<std::string> ADB::GetDevices() {
-	std::string output = runProgram("adb", {"devices"});
+	std::string output = runProgram("adb", {"devices"}).toStdString();
 
 	if (output.empty())
 		LOGE("adb not found!");
@@ -134,8 +134,38 @@ bool ADB::ConnectDevice(std::string serial) {
 	return true;
 }
 
+QString ADB::ShellCommand(QString cmd) {
+	return runProgram("adb", { "-s", serial.c_str(), "shell", cmd });
+}
+
 std::string ADB::ShellCommand(std::string cmd) {
-	return runProgram("adb", { "-s", serial.c_str(), "shell", cmd.c_str() });
+	return this->ShellCommand(QString::fromStdString(cmd)).toStdString();
+}
+
+std::string ADB::ShellCommand(const char* cmd) {
+	return this->ShellCommand(std::string(cmd));
+}
+
+QString ADB::ShellCommandPrivileged(QString cmd) {
+	QString result;
+
+	result = this->ShellCommand(QString("su 0 sh -c '%1' || echo ShellCommandPrivileged $?").arg(cmd));
+	if (result.contains("ShellCommandPrivileged"))
+		return result;
+
+	result = this->ShellCommand(QString("run-as com.lunarg.gfxreconstruct.replay sh -c '%1' || echo ShellCommandPrivileged $?").arg(cmd));
+	if (result.contains("ShellCommandPrivileged"))
+		return result;
+
+	return this->ShellCommand(cmd);
+}
+
+std::string ADB::ShellCommandPrivileged(std::string cmd) {
+	return this->ShellCommandPrivileged(QString::fromStdString(cmd)).toStdString();
+}
+
+std::string ADB::ShellCommandPrivileged(const char* cmd) {
+	return this->ShellCommandPrivileged(std::string(cmd));
 }
 
 std::vector<std::string> ADB::GetPackages() {
@@ -204,20 +234,6 @@ bool ADB::InstallReplayApk() {
 	}
 
 	return true;
-}
-
-std::string ADB::ShellCommandPrivileged(std::string cmd) {
-	std::string result;
-
-	result = this->ShellCommand(std::format("su 0 sh -c '{}' || echo ShellCommandPrivileged $?", cmd));
-	if (result.find("ShellCommandPrivileged") == std::string::npos)
-		return result;
-
-	result = this->ShellCommand(std::format("run-as com.lunarg.gfxreconstruct.replay sh -c '{}' || echo ShellCommandPrivileged $?", cmd));
-	if (result.find("ShellCommandPrivileged") == std::string::npos)
-		return result;
-
-	return this->ShellCommand(cmd);
 }
 
 bool ADB::AlreadyUploaded(std::filesystem::path local, std::string remote) {
