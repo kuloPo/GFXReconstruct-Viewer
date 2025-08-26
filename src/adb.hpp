@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QString>
+#include <QFileInfo>
 
 #include <vector>
 #include <string>
@@ -45,15 +46,16 @@ public:
     std::vector<std::string> GetPackages();
     std::string GetAppAbi(std::string package);
     std::string GetAppLibDir(std::string package);
-    bool PushFile(std::filesystem::path src, std::string dst);
+    bool PushFile(QFileInfo src, QString dst);
     bool InstallReplayApk();
-    bool AlreadyUploaded(std::filesystem::path local, std::string remote);
+    bool PushRecordLayer(std::string package);
+    bool AlreadyUploaded(QFileInfo local, QString remote);
     void SetRecordProp(std::string package);
-    size_t GetRemoteSize(std::string remotePath);
 
 private:
     QString runProgram(const QString& program, const QStringList& args);
-    bool pushFileStreaming(std::string serial, std::filesystem::path src, std::string dst);
+    bool pushFileStreaming(std::string serial, QFileInfo src, QString dst);
+    qint64 GetRemoteSize(QString remotePath);
 
 private:
     std::string serial;

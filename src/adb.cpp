@@ -26,7 +26,7 @@
 
 #include <QProcess>
 #include <QFile>
-#include <QFileInfo>
+#include <QDir>
 #include <QCoreApplication>
 
 #include <sstream>
@@ -51,15 +51,15 @@ QString ADB::runProgram(const QString& program, const QStringList& args) {
 	return output.trimmed();
 }
 
-bool ADB::pushFileStreaming(std::string serial, std::filesystem::path src, std::string dst)
+bool ADB::pushFileStreaming(std::string serial, QFileInfo src, QString dst)
 {
 	QProcess p;
-	QFile f(src);
+	QFile f(src.absoluteFilePath());
 	if (!f.open(QIODevice::ReadOnly))
 		return false;
 
 	p.setProgram("adb");
-	p.setArguments({ "-s", serial.c_str(), "exec-in", "sh", "-c", QString("cat > %1").arg(dst.c_str()) });
+	p.setArguments({ "-s", serial.c_str(), "exec-in", "sh", "-c", QString("cat > %1").arg(dst) });
 	p.setProcessChannelMode(QProcess::MergedChannels);
 	p.start();
 
@@ -83,14 +83,14 @@ bool ADB::pushFileStreaming(std::string serial, std::filesystem::path src, std::
 		}
 	}
 
-	size_t lastRemoteSize = 0;
-	size_t currentRemoteSize = 0;
+	qint64 lastRemoteSize = 0;
+	qint64 currentRemoteSize = 0;
 
 	do {
 		lastRemoteSize = currentRemoteSize;
-		size_t currentRemoteSize = this->GetRemoteSize(dst);
+		currentRemoteSize = this->GetRemoteSize(dst);
 		std::this_thread::sleep_for(std::chrono::seconds(1));
-	} while ((long long)currentRemoteSize < f.size() && currentRemoteSize != lastRemoteSize);
+	} while (currentRemoteSize < f.size() && currentRemoteSize != lastRemoteSize);
 
 	p.closeWriteChannel();
 	p.waitForFinished(-1);
@@ -150,11 +150,11 @@ QString ADB::ShellCommandPrivileged(QString cmd) {
 	QString result;
 
 	result = this->ShellCommand(QString("su 0 sh -c '%1' || echo ShellCommandPrivileged $?").arg(cmd));
-	if (result.contains("ShellCommandPrivileged"))
+	if (!result.contains("ShellCommandPrivileged"))
 		return result;
 
 	result = this->ShellCommand(QString("run-as com.lunarg.gfxreconstruct.replay sh -c '%1' || echo ShellCommandPrivileged $?").arg(cmd));
-	if (result.contains("ShellCommandPrivileged"))
+	if (!result.contains("ShellCommandPrivileged"))
 		return result;
 
 	return this->ShellCommand(cmd);
@@ -193,22 +193,21 @@ std::string ADB::GetAppLibDir(std::string package) {
 	return str;
 }
 
-bool ADB::PushFile(std::filesystem::path src, std::string dst) {
-	std::string filename = src.filename().string();
-	dst = dst.ends_with('/') ? dst + filename : dst;
-	if (!pushFileStreaming(serial.c_str(), src.string().c_str(), dst.c_str())) {
-		std::string staging = "/sdcard/Download/" + filename;
-		if (!pushFileStreaming(serial.c_str(), src.string().c_str(), staging.c_str()))
+bool ADB::PushFile(QFileInfo src, QString dst) {
+	QString filename = src.fileName();
+	dst = dst.endsWith('/') ? dst + filename : dst;
+	if (!pushFileStreaming(serial.c_str(), src, dst)) {
+		QString staging = "/sdcard/Download/" + filename;
+		if (!pushFileStreaming(serial.c_str(), src, staging))
 			return false;
-		this->ShellCommandPrivileged(std::format("mv /sdcard/Download/{} {}", filename.c_str(), dst.c_str()));
+		this->ShellCommandPrivileged(QString("mv /sdcard/Download/%1 %2").arg(filename, dst));
 	}
-	this->ShellCommandPrivileged(std::format("chmod 777 {}", dst.c_str()));
+	this->ShellCommandPrivileged(QString("chmod 777 %1").arg(dst));
 	return this->GetRemoteSize(dst);
 }
 
 bool ADB::InstallReplayApk() {
-	std::filesystem::path localReplayApkPath = QCoreApplication::applicationDirPath().toStdString();
-	localReplayApkPath = localReplayApkPath / "tools" / "replay-debug.apk";
+	QFileInfo localReplayApkPath(QDir(QCoreApplication::applicationDirPath()), "tools/replay-debug.apk");
 
 	std::string cmd = "pm list packages -3 | grep com.lunarg.gfxreconstruct.replay";
 	if (this->ShellCommand(cmd).length()) {
@@ -217,8 +216,8 @@ bool ADB::InstallReplayApk() {
 	}
 
 	LOGD("Installing replay APK");
-	if (!std::filesystem::exists(localReplayApkPath)) {
-		LOGW("Failed to find replay APK at %s", localReplayApkPath.string().c_str());
+	if (!localReplayApkPath.isFile()) {
+		LOGW("Failed to find replay APK at %s", localReplayApkPath.absoluteFilePath().toStdString().c_str());
 		return false;
 	}
 
@@ -236,9 +235,48 @@ bool ADB::InstallReplayApk() {
 	return true;
 }
 
-bool ADB::AlreadyUploaded(std::filesystem::path local, std::string remote) {
-	std::ifstream localFile(local, std::ios::binary | std::ios::ate);
-	std::streamsize localSize = localFile.tellg();
+bool ADB::PushRecordLayer(std::string package) {
+	std::string abi = this->GetAppAbi(package);
+	std::string arch;
+	if (abi.empty()) {
+		LOGW("Failed to get ABI of %s", package.c_str());
+		return false;
+	}
+
+	if (abi == "armeabi")
+		abi = "armeabi-v7a";
+
+	if (abi == "arm64-v8a")
+		arch = "arm64";
+	else if (abi == "armeabi-v7a")
+		arch = "arm";
+	else if (abi == "x86_64")
+		arch = "x86_64";
+	else if (abi == "x86")
+		arch = "x86";
+	else {
+		LOGW("Unknown ABI %s", abi.c_str());
+		return false;
+	}
+	LOGD("ABI of %s is %s arch %s", package.c_str(), abi.c_str(), arch.c_str());
+
+	QFileInfo localRecordLayerPath(QDir(QCoreApplication::applicationDirPath()), QString("layer/%1/libVkLayer_gfxreconstruct.so").arg(abi.c_str()));
+	if (!localRecordLayerPath.isFile()) {
+		LOGW("Failed to find debug layer at %s", localRecordLayerPath.absoluteFilePath().toStdString().c_str());
+		return false;
+	}
+
+	QString dstPath = QString("%1%2/").arg(this->GetAppLibDir(package).c_str(), arch.c_str());
+	if (!this->PushFile(localRecordLayerPath, dstPath)) {
+		LOGW("Failed to push layer to app lib path %s", dstPath.toStdString().c_str());
+		return false;
+	}
+
+	return true;
+}
+
+bool ADB::AlreadyUploaded(QFileInfo local, QString remote) {
+	qint64 localSize = local.size();
 	size_t remoteSize = this->GetRemoteSize(remote);
 
 	LOGD("local size %zd remote size %zu", localSize, remoteSize);
@@ -253,10 +291,7 @@ void ADB::SetRecordProp(std::string package) {
 	this->ShellCommand(std::format("setprop debug.gfxrecon.capture_file /sdcard/Download/{}.gfxr", package));
 }
 
-size_t ADB::GetRemoteSize(std::string remotePath) {
-	std::string strRemoteSize = this->ShellCommandPrivileged(std::format("stat -c%s {}", remotePath));
-	std::stringstream ss(strRemoteSize);
-	size_t remoteSize = 0;
-	ss >> remoteSize;
-	return remoteSize;
+qint64 ADB::GetRemoteSize(QString remotePath) {
+	QString strRemoteSize = this->ShellCommandPrivileged(QString("stat -c%s %1").arg(remotePath));
+	return strRemoteSize.toLongLong();
 }

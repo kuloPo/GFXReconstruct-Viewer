@@ -30,23 +30,6 @@
 #include <filesystem>
 #include "common.hpp"
 
-static std::string ConvertAbiToArch(std::string& abi) {
-    if (abi == "armeabi")
-        abi = "armeabi-v7a";
-
-    if (abi == "arm64-v8a")
-        return "arm64";
-    if (abi == "armeabi-v7a")
-        return "arm";
-    if (abi == "x86_64")
-        return "x86_64";
-    if (abi == "x86")
-        return "x86";
-
-    LOGE("Unknown abi %s", abi.c_str());
-    return abi;
-}
-
 StartupWindow::StartupWindow(QWidget* parent)
     : QWidget(parent), ui(new Ui::StartupWindow), m_eCurrentPage(Page::Startup), m_ListModel(this)
 {
@@ -271,27 +254,8 @@ void StartupWindow::OnNextButtonClicked() {
         }
         case StartupWindow::Page::Option:
         {
-            std::string abi = adb.GetAppAbi(m_strSelectedPackage);
-            if (abi.empty()) {
-                LOGW("Failed to get ABI of %s", m_strSelectedPackage.c_str());
+            if (!adb.PushRecordLayer(m_strSelectedPackage))
                 break;
-            }
-
-            std::string arch = ConvertAbiToArch(abi);
-            LOGD("ABI of %s is %s arch %s", m_strSelectedPackage.c_str(), abi.c_str(), arch.c_str());
-
-            std::filesystem::path localRecordLayerPath = QCoreApplication::applicationDirPath().toStdString();
-            localRecordLayerPath = localRecordLayerPath / "layer" / abi / "libVkLayer_gfxreconstruct.so";
-            if (!std::filesystem::exists(localRecordLayerPath)) {
-                LOGW("Failed to find debug layer at %s", localRecordLayerPath.string().c_str());
-                break;
-            }
-
-            std::string dstPath = adb.GetAppLibDir(m_strSelectedPackage) + arch + "/";
-            if (!adb.PushFile(localRecordLayerPath, dstPath)) {
-                LOGW("Failed to push layer to app lib path %s", dstPath.c_str());
-                break;
-            }
 
             adb.SetRecordProp(m_strSelectedPackage);
             std::string args = ui->InputLineEdit->text().toStdString();
@@ -311,35 +275,36 @@ void StartupWindow::OnNextButtonClicked() {
                 break;
             }
 
-            std::filesystem::path localReplayFilePath = ui->InputLineEdit->text().toStdString();
-            std::string replayFileName = localReplayFilePath.filename().string();
-            std::string remoteReplayFilePath = "/data/user/0/com.lunarg.gfxreconstruct.replay/files/" + replayFileName;
+            QString localReplayFilePath = ui->InputLineEdit->text();
+            QFileInfo localReplayFilePathInfo(localReplayFilePath);
+            QString replayFileName = localReplayFilePathInfo.fileName();
+            QString remoteReplayFilePath = "/data/user/0/com.lunarg.gfxreconstruct.replay/files/" + replayFileName;
 
-            if (!std::filesystem::is_regular_file(localReplayFilePath)) {
-                LOGW("Replay file %s not exists", localReplayFilePath.string().c_str());
+            if (!localReplayFilePathInfo.isFile()) {
+                LOGW("Replay file %s not exists", localReplayFilePath.toStdString().c_str());
                 break;
             }
 
-            if (!adb.AlreadyUploaded(localReplayFilePath, remoteReplayFilePath)) {
-                if (!adb.PushFile(localReplayFilePath, remoteReplayFilePath)) {
+            if (!adb.AlreadyUploaded(localReplayFilePathInfo, remoteReplayFilePath)) {
+                if (!adb.PushFile(localReplayFilePathInfo, remoteReplayFilePath)) {
                     LOGW("Failed to push replay file");
                     break;
                 }
             }
             else {
-                LOGD("Replay file %s exists", replayFileName.c_str());
+                LOGD("Replay file %s exists", replayFileName.toStdString().c_str());
             }
 
             adb.ShellCommand("am force-stop com.lunarg.gfxreconstruct.replay");
 
-            std::string args = "";
+            QString args = "";
             if (ui->RemoveUnsupportedBox->isChecked())
                 args += "--remove-unsupported ";
 
-            std::string cmd = std::format(
+            QString cmd = QString(
                 "am start -n \"com.lunarg.gfxreconstruct.replay/android.app.NativeActivity\""
                 " -a android.intent.action.MAIN -c android.intent.category.LAUNCHER"
-                " --es \"args\" \"{}{}\"", args, remoteReplayFilePath);
+                " --es \"args\" \"%1%2\"").arg(args, remoteReplayFilePath);
             adb.ShellCommand(cmd);
 
             FlipPage(Page::Startup);
