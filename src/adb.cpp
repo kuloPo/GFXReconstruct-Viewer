@@ -35,6 +35,7 @@
 #include <thread>
 #include <chrono>
 #include "common.hpp"
+#include "ProgressBar.hpp"
 
 static std::string rstrip(const std::string & s) {
 	return s.substr(0, s.find_last_not_of(" \t\n\r\f\v") + 1);
@@ -58,6 +59,13 @@ bool ADB::pushFileStreaming(std::string serial, QFileInfo src, QString dst)
 	if (!f.open(QIODevice::ReadOnly))
 		return false;
 
+	if (this->ShellCommand(QString("touch %1 || echo failed $?").arg(dst)).contains("failed")) {
+		LOGD("Failed to create remote file %s", dst.toStdString().c_str());
+		return false;
+	}
+
+	LOGD("Transferring %s to %s", src.absoluteFilePath().toStdString().c_str(), dst.toStdString().c_str());
+
 	p.setProgram("adb");
 	p.setArguments({ "-s", serial.c_str(), "exec-in", "sh", "-c", QString("cat > %1").arg(dst) });
 	p.setProcessChannelMode(QProcess::MergedChannels);
@@ -66,9 +74,14 @@ bool ADB::pushFileStreaming(std::string serial, QFileInfo src, QString dst)
 	if (!p.waitForStarted())
 		return false;
 
+	const qint64 totalSize = f.size();
+	qint64 sent = 0;
+
 	QByteArray buf;
 	buf.resize(1 << 20);
 
+	ProgressBar progress(QString("Transferring %1").arg(src.fileName()));
+	
 	while (true) {
 		qint64 off = 0;
 		const qint64 n = f.read(buf.data(), buf.size());
@@ -78,8 +91,11 @@ bool ADB::pushFileStreaming(std::string serial, QFileInfo src, QString dst)
 
 		while (off < n) {
 			const qint64 w = p.write(buf.constData() + off, n - off);
-			if (w <= 0) return false; else off += w;
+			if (w <= 0) return false;
 			if (!p.waitForBytesWritten(-1)) return false;
+			off += w;
+			sent += w;
+			progress.update(sent * 100 / totalSize);
 		}
 	}
 
@@ -90,10 +106,14 @@ bool ADB::pushFileStreaming(std::string serial, QFileInfo src, QString dst)
 		lastRemoteSize = currentRemoteSize;
 		currentRemoteSize = this->GetRemoteSize(dst);
 		std::this_thread::sleep_for(std::chrono::seconds(1));
-	} while (currentRemoteSize < f.size() && currentRemoteSize != lastRemoteSize);
+	} while (currentRemoteSize < totalSize && currentRemoteSize != lastRemoteSize);
 
 	p.closeWriteChannel();
 	p.waitForFinished(-1);
+	progress.close();
+
+	LOGD("%lld out of %lld transferred", currentRemoteSize, totalSize);
+
 	return currentRemoteSize == f.size();
 }
 
