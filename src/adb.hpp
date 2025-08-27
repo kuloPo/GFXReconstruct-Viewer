@@ -44,8 +44,6 @@ public:
     std::string ShellCommandPrivileged(std::string cmd);
     std::string ShellCommandPrivileged(const char* cmd);
     std::vector<std::string> GetPackages();
-    std::string GetAppAbi(std::string package);
-    std::string GetAppLibDir(std::string package);
     bool PushFile(QFileInfo src, QString dst);
     bool InstallReplayApk();
     bool PushRecordLayer(std::string package);
@@ -56,6 +54,8 @@ private:
     QString runProgram(const QString& program, const QStringList& args);
     bool pushFileStreaming(std::string serial, QFileInfo src, QString dst);
     qint64 GetRemoteSize(QString remotePath);
+    std::string GetAppAbi(std::string package);
+    std::string GetAppLibDir(std::string package);
 
 private:
     std::string serial;
