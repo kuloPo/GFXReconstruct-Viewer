@@ -114,7 +114,7 @@ void StartupWindow::FlipPage(Page page) {
             std::vector<std::string> devices = adb.GetDevices();
             LOGD("ADB device num %d", devices.size());
             for (std::string device : devices)
-                LOGD("%s", device.c_str());
+                LOGD("    %s", device.c_str());
 
             for (std::string device : devices) {
                 rows << QString(QString::fromStdString(device));
@@ -138,7 +138,7 @@ void StartupWindow::FlipPage(Page page) {
             std::vector<std::string> packages = adb.GetPackages();
             LOGD("package num %d", packages.size());
             for (std::string package : packages) {
-                LOGD("%s", package.c_str());
+                LOGD("    %s", package.c_str());
                 rows << QString(QString::fromStdString(package));
             }
             m_ListModel.setStringList(rows);

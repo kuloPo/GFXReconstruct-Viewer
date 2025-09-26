@@ -169,13 +169,17 @@ std::string ADB::ShellCommand(const char* cmd) {
 QString ADB::ShellCommandPrivileged(QString cmd) {
 	QString result;
 
+	LOGD("Running previleged command \"%s\"", cmd.toStdString().c_str());
+
 	result = this->ShellCommand(QString("su 0 sh -c '%1' || echo ShellCommandPrivileged $?").arg(cmd));
 	if (!result.contains("ShellCommandPrivileged"))
 		return result;
+	LOGD("Failed to run previleged command as root");
 
 	result = this->ShellCommand(QString("run-as com.lunarg.gfxreconstruct.replay sh -c '%1' || echo ShellCommandPrivileged $?").arg(cmd));
 	if (!result.contains("ShellCommandPrivileged"))
 		return result;
+	LOGD("Failed to run previleged command as gfxr");
 
 	return this->ShellCommand(cmd);
 }
@@ -216,10 +220,14 @@ std::string ADB::GetAppLibDir(std::string package) {
 bool ADB::PushFile(QFileInfo src, QString dst) {
 	QString filename = src.fileName();
 	dst = dst.endsWith('/') ? dst + filename : dst;
+	LOGD("Pushing %s", dst.toStdString().c_str());
 	if (!pushFileStreaming(serial.c_str(), src, dst)) {
+		LOGD("Unable to push directly. Try pushing to Download folder");
 		QString staging = "/sdcard/Download/" + filename;
-		if (!pushFileStreaming(serial.c_str(), src, staging))
+		if (!pushFileStreaming(serial.c_str(), src, staging)) {
+			LOGD("Failed to push to Download folder");
 			return false;
+		}
 		this->ShellCommandPrivileged(QString("mv /sdcard/Download/%1 %2").arg(filename, dst));
 	}
 	this->ShellCommandPrivileged(QString("chmod 777 %1").arg(dst));
