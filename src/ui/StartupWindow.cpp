@@ -188,9 +188,10 @@ void StartupWindow::OnReplayButtonClicked() {
 }
 
 void StartupWindow::OnFileSelectButtonClicked() {
-    QString filepath = QFileDialog::getOpenFileName(this, "Open capture",
-        QStandardPaths::writableLocation(QStandardPaths::DownloadLocation));
+    static QString defaultPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    QString filepath = QFileDialog::getOpenFileName(this, "Open capture", defaultPath);
     ui->InputLineEdit->setText(filepath);
+    defaultPath = filepath;
 }
 
 void StartupWindow::OnNextButtonClicked() {
