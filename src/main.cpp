@@ -22,6 +22,11 @@
  * SOFTWARE.
  *******************************************************************************/
 
+#if defined(WIN32)
+extern "C" __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int);
+extern "C" __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int);
+#endif
+
 #include <QApplication>
 
 #include "StartupWindow.hpp"
@@ -30,6 +35,10 @@
 #include "common.hpp"
 
 int main(int argc, char *argv[]) {
+#if defined(WIN32)
+    SetConsoleOutputCP(65001);
+    SetConsoleCP(65001);
+#endif
     LOGD("Hello GFXReconstruct Viewer!");
 
     QApplication app(argc, argv);
