@@ -28,6 +28,7 @@ extern "C" __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int);
 #endif
 
 #include <QApplication>
+#include <QSurfaceFormat>
 
 #include "StartupWindow.hpp"
 
@@ -40,6 +41,16 @@ int main(int argc, char *argv[]) {
     SetConsoleCP(65001);
 #endif
     LOGD("Hello GFXReconstruct Viewer!");
+
+    QSurfaceFormat format;
+#ifdef __APPLE__
+    format.setVersion(4, 1);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+#else
+    format.setVersion(4, 3);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+#endif
+    QSurfaceFormat::setDefaultFormat(format);
 
     QApplication app(argc, argv);
 

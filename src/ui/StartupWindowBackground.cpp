@@ -187,10 +187,7 @@ GLuint Background::createShaderProgram(GLuint vertexShader = 0, GLuint fragmentS
 Background::Background(QWidget* parent)
     : QOpenGLWidget(parent)
 {
-    QSurfaceFormat format;
-    format.setVersion(4, 3);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    setFormat(format);
+
 }
 
 Background::~Background()
@@ -211,6 +208,9 @@ void Background::initializeGL()
 {
     initializeOpenGLFunctions();
     
+    glClearColor(77.0f / 255, 77.0f / 255, 138.0f / 255, 1.0f);
+
+#if !defined(__APPLE__)
     i32TrianglePerRow = this->size().height() / fTriangleSize + 1;
     i32TrianglePerCol = this->size().width() / fTriangleHeight + 1;
     i32TriangleCount = i32TrianglePerRow * i32TrianglePerCol * 2;
@@ -270,20 +270,21 @@ void Background::initializeGL()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glClearColor(77.0f / 255, 77.0f / 255, 138.0f / 255, 1.0f);
-
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
+#endif
 }
 
 void Background::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT);
 
+#if !defined(__APPLE__)
     glUseProgram(renderProgram);
 
     glUniform1i(glGetUniformLocation(renderProgram, "i32Width"), static_cast<GLint>(this->size().width()));
     glUniform1i(glGetUniformLocation(renderProgram, "i32Height"), static_cast<GLint>(this->size().height()));
 
     glDrawElements(GL_TRIANGLES, i32TriangleCount * 3, GL_UNSIGNED_INT, 0);
+#endif
 }
