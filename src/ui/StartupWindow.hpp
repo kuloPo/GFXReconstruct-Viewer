@@ -54,6 +54,8 @@ private:
     void OnNextButtonClicked();
     void OnBackButtonClicked();
     void OnFileSelectButtonClicked();
+    void OnOpenButtonClicked();
+    QString PopFileOpenWindow();
 
 private:
     Ui::StartupWindow* ui;

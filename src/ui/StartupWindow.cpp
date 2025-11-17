@@ -58,6 +58,7 @@ StartupWindow::StartupWindow(QWidget* parent)
     connect(ui->CloseButton, &QPushButton::clicked, this, &QWidget::close);
     connect(ui->RecordButton, &QPushButton::clicked, this, &StartupWindow::OnRecordButtonClicked);
     connect(ui->ReplayButton, &QPushButton::clicked, this, &StartupWindow::OnReplayButtonClicked);
+    connect(ui->OpenButton, &QPushButton::clicked, this, &StartupWindow::OnOpenButtonClicked);
     connect(ui->NextButton, &QPushButton::clicked, this, &StartupWindow::OnNextButtonClicked);
     connect(ui->BackButton, &QPushButton::clicked, this, &StartupWindow::OnBackButtonClicked);
     connect(ui->FileSelectButton, &QPushButton::clicked, this, &StartupWindow::OnFileSelectButtonClicked);
@@ -188,10 +189,7 @@ void StartupWindow::OnReplayButtonClicked() {
 }
 
 void StartupWindow::OnFileSelectButtonClicked() {
-    static QString defaultPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-    QString filepath = QFileDialog::getOpenFileName(this, "Open capture", defaultPath);
-    ui->InputLineEdit->setText(filepath);
-    defaultPath = filepath;
+    ui->InputLineEdit->setText(PopFileOpenWindow());
 }
 
 void StartupWindow::OnNextButtonClicked() {
@@ -267,19 +265,24 @@ void StartupWindow::OnNextButtonClicked() {
         }
         case StartupWindow::Page::FileSelect:
         {
-            if (ui->InputLineEdit->text().isEmpty()) {
-                LOGD("No replay file is selected");
+            QString localReplayFilePath = ui->InputLineEdit->text();
+            QFileInfo localReplayFilePathInfo(localReplayFilePath);
+            QString replayFileName = localReplayFilePathInfo.fileName();
+            QString remoteReplayFilePath = "/data/user/0/com.lunarg.gfxreconstruct.replay/files/" + replayFileName;
+
+            if (localReplayFilePath.isEmpty()) {
+                LOGW("No replay file is selected");
+                break;
+            }
+
+            if (!localReplayFilePathInfo.isFile()) {
+                LOGW("Replay file does not exist");
                 break;
             }
 
             if (!adb.InstallReplayApk()) {
                 break;
             }
-
-            QString localReplayFilePath = ui->InputLineEdit->text();
-            QFileInfo localReplayFilePathInfo(localReplayFilePath);
-            QString replayFileName = localReplayFilePathInfo.fileName();
-            QString remoteReplayFilePath = "/data/user/0/com.lunarg.gfxreconstruct.replay/files/" + replayFileName;
 
             if (!localReplayFilePathInfo.isFile()) {
                 LOGW("Replay file %s not exists", localReplayFilePath.toStdString().c_str());
@@ -340,4 +343,16 @@ void StartupWindow::OnBackButtonClicked() {
             LOGE("Unknown page %d when clicking back button", m_eCurrentPage);
         }
     }
+}
+
+void StartupWindow::OnOpenButtonClicked() {
+    LOGD("Open button clicked");
+    QString filepath = PopFileOpenWindow();
+}
+
+QString StartupWindow::PopFileOpenWindow() {
+    static QString defaultPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    QString filepath = QFileDialog::getOpenFileName(this, "Open capture", defaultPath);
+    defaultPath = filepath;
+    return filepath;
 }
