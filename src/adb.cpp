@@ -78,7 +78,7 @@ bool ADB::pushFileStreaming(std::string serial, QFileInfo src, QString dst)
 	qint64 sent = 0;
 
 	QByteArray buf;
-	buf.resize(1 << 20);
+	buf.resize(1 << 16);
 
 	ProgressBar progress(QString("Transferring %1").arg(src.fileName()));
 	
@@ -114,7 +114,7 @@ bool ADB::pushFileStreaming(std::string serial, QFileInfo src, QString dst)
 
 	LOGD("%lld out of %lld transferred", currentRemoteSize, totalSize);
 
-	return currentRemoteSize == f.size();
+	return currentRemoteSize == totalSize;
 }
 
 ADB::ADB() {
@@ -255,7 +255,7 @@ bool ADB::InstallReplayApk() {
 	}
 
 	std::string result = this->ShellCommand("pm install -g -t -r /sdcard/Download/gfxr_replay.apk");
-	if (result.find("success") == std::string::npos) {
+	if (result.find("success") == std::string::npos && result.find("Success") == std::string::npos) {
 		LOGW("Failed to install replay APK");
 		return false;
 	}
