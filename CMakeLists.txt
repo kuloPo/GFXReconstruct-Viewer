@@ -36,11 +36,10 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 endif()
 
-target_compile_definitions(${PROJECT_NAME}
+target_compile_options(${PROJECT_NAME}
     PRIVATE
-        PROJ_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"
-        $<$<CONFIG:Debug>:DEBUG>
-        $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
+        $<$<CXX_COMPILER_ID:MSVC>:/d1trimfile:${CMAKE_SOURCE_DIR}/>
+        $<$<CXX_COMPILER_ID:GNU>:-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=>
 )
 
 target_compile_options(${PROJECT_NAME}

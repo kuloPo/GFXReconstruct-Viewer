@@ -42,7 +42,13 @@ public:
         Level level, const char* format, ...);
 };
 
-#define LOG(level, fmt, ...) Logger::getInstance().log(__FILE__, __LINE__, __FUNCTION__, level, fmt, ##__VA_ARGS__)
+#if defined(__FILE_NAME__)
+#define LOG_FILE __FILE_NAME__
+#else
+#define LOG_FILE __FILE__
+#endif
+
+#define LOG(level, fmt, ...) Logger::getInstance().log(LOG_FILE, __LINE__, __FUNCTION__, level, fmt, ##__VA_ARGS__)
 #ifdef DEBUG
 #define LOGD(fmt, ...) LOG(Logger::Debug, fmt, ##__VA_ARGS__)
 #else

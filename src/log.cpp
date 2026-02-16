@@ -53,8 +53,7 @@ void Logger::log(const char* file, int line, const char* func, Logger::Level lev
         LOGE("Unknown log level!");
     }
 
-    std::filesystem::path file_path = std::filesystem::proximate(file, PROJ_DIR);
-    printf(infoStr, file_path.string().c_str(), line, func);
+    printf(infoStr, file, line, func);
 
     va_list argptr;
     va_start(argptr, format);
