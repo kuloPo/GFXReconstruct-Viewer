@@ -32,7 +32,7 @@ C:\Qt\6.x.x\msvc2022_64\bin
 ```
 Or you can specify Qt6_DIR by yourself:
 ```
-C:/Qt/6.x.x/msvc2022_64/lib/cmake/Qt6
+C:\Qt\6.x.x\msvc2022_64\lib\cmake\Qt6
 ```
 
 ### Linux/MacOS
