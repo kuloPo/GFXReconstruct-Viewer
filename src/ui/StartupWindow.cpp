@@ -74,6 +74,20 @@ StartupWindow::~StartupWindow() {
     delete ui;
 }
 
+void StartupWindow::mousePressEvent(QMouseEvent* event) {
+    if (event->button() == Qt::LeftButton) {
+        m_DragPos = event->globalPosition().toPoint() - frameGeometry().topLeft();
+        event->accept();
+    }
+}
+
+void StartupWindow::mouseMoveEvent(QMouseEvent* event) {
+    if (event->buttons() & Qt::LeftButton) {
+        move(event->globalPosition().toPoint() - m_DragPos);
+        event->accept();
+    }
+}
+
 void StartupWindow::FlipPage(Page page) {
     ui->RecordButton->hide();
     ui->ReplayButton->hide();

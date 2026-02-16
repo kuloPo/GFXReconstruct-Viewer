@@ -187,7 +187,7 @@ GLuint Background::createShaderProgram(GLuint vertexShader = 0, GLuint fragmentS
 Background::Background(QWidget* parent)
     : QOpenGLWidget(parent)
 {
-
+    setAttribute(Qt::WA_TransparentForMouseEvents);
 }
 
 Background::~Background()

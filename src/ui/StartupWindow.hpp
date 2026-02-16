@@ -26,6 +26,7 @@
 
 #include <QWidget>
 #include <QStringListModel>
+#include <QMouseEvent>
 
 #include "ui_StartupWindow.h"
 #include "StartupWindowBackground.hpp"
@@ -48,6 +49,8 @@ private:
         FileSelect,
     };
 
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
     void FlipPage(Page page);
     void OnRecordButtonClicked();
     void OnReplayButtonClicked();
@@ -59,6 +62,7 @@ private:
 
 private:
     Ui::StartupWindow* ui;
+    QPoint m_DragPos;
     Page m_eCurrentPage;
     ADB adb;
     QStringListModel m_ListModel;
