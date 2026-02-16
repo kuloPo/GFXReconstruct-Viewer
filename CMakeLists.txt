@@ -23,7 +23,11 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
 
-add_executable(${PROJECT_NAME} ${SRC_LIST})
+if(APPLE AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SRC_LIST})
+else()
+    add_executable(${PROJECT_NAME} ${SRC_LIST})
+endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGLWidgets)
 
@@ -67,5 +71,11 @@ if(WIN32)
         $<TARGET_FILE:${PROJECT_NAME}>
         $<$<CONFIG:Debug>:--debug>
         $<$<NOT:$<CONFIG:Debug>>:--release>
+    )
+endif()
+
+if(WIN32)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>
     )
 endif()

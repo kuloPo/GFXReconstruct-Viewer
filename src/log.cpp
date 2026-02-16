@@ -26,6 +26,7 @@
 #include <filesystem>
 #include <cstdio>
 #include <cstdarg>
+#include <QMessageBox>
 #include "log.hpp"
 
 Logger::Logger() {
@@ -58,6 +59,10 @@ void Logger::log(const char* file, int line, const char* func, Logger::Level lev
     va_list argptr;
     va_start(argptr, format);
     vprintf(format, argptr);
+    if (level == Warn)
+        QMessageBox::warning(nullptr, "", QString::vasprintf(format, argptr));
+    else if (level == Error)
+        QMessageBox::critical(nullptr, "", QString::vasprintf(format, argptr));
     va_end(argptr);
 
     std::cout << std::endl;
