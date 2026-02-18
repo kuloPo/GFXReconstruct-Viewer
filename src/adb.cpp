@@ -205,6 +205,10 @@ std::vector<std::string> ADB::GetPackages() {
 	return packages;
 }
 
+std::string ADB::GetCurrentApp() {
+	return this->ShellCommand("dumpsys activity activities | grep mResumedActivity | sed 's/.*u0 //;s/\\/.*//;s/ .*//'");
+}
+
 std::string ADB::GetAppAbi(std::string package) {
 	std::string cmd = std::format("dumpsys package {} | grep primaryCpuAbi | cut -d= -f2", package);
 	std::string abi = this->ShellCommand(cmd);

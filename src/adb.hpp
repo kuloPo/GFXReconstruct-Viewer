@@ -44,6 +44,7 @@ public:
     std::string ShellCommandPrivileged(std::string cmd);
     std::string ShellCommandPrivileged(const char* cmd);
     std::vector<std::string> GetPackages();
+    std::string GetCurrentApp();
     bool PushFile(QFileInfo src, QString dst);
     bool InstallReplayApk();
     bool PushRecordLayer(std::string package);
