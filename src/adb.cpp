@@ -124,6 +124,24 @@ ADB::~ADB() {
 }
 
 std::vector<std::string> ADB::GetDevices() {
+#if defined(__APPLE__)
+	std::string PATH =
+		"/usr/local/bin:"
+		"/opt/homebrew/bin:"
+		"/opt/homebrew/sbin";
+	const char* current = getenv("PATH");
+	if (current) {
+		PATH += ":";
+		PATH += current;
+	}
+	const char* HOME = getenv("HOME");
+	if (HOME) {
+		PATH += ":";
+		PATH += HOME;
+		PATH += "/Library/Android/sdk/platform-tools";
+	}
+	setenv("PATH", PATH.c_str(), 1);
+#endif
 	std::string output = runProgram("adb", {"devices"}).toStdString();
 
 	if (output.empty())
