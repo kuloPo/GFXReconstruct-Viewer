@@ -117,6 +117,65 @@ bool ADB::pushFileStreaming(std::string serial, QFileInfo src, QString dst)
 	return currentRemoteSize == totalSize;
 }
 
+bool ADB::pullFileStreaming(std::string serial, QString src, QFileInfo dst)
+{
+	qint64 totalSize = this->GetRemoteSize(src);
+	if (totalSize <= 0) {
+		LOGD("Remote file %s not found or empty", src.toStdString().c_str());
+		return false;
+	}
+
+	QFile f(dst.absoluteFilePath());
+	if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+		return false;
+
+	LOGD("Pulling %s to %s", src.toStdString().c_str(), dst.absoluteFilePath().toStdString().c_str());
+
+	QProcess p;
+	p.setProgram("adb");
+	p.setArguments({ "-s", serial.c_str(), "exec-out", "cat", src });
+	p.setReadChannel(QProcess::StandardOutput);
+	p.start();
+
+	if (!p.waitForStarted())
+		return false;
+
+	qint64 received = 0;
+	ProgressBar progress(QString("Pulling %1").arg(dst.fileName()));
+
+	while (true) {
+		if (!p.waitForReadyRead(-1)) {
+			if (p.state() == QProcess::NotRunning)
+				break;
+			continue;
+		}
+
+		QByteArray chunk = p.readAll();
+		if (chunk.isEmpty())
+			break;
+
+		qint64 off = 0;
+		while (off < chunk.size()) {
+			qint64 w = f.write(chunk.constData() + off, chunk.size() - off);
+			if (w <= 0) {
+				f.close();
+				return false;
+			}
+			off += w;
+		}
+		received += chunk.size();
+		progress.update(received * 100 / totalSize);
+	}
+
+	p.waitForFinished(-1);
+	f.close();
+	progress.close();
+
+	LOGD("%lld out of %lld pulled", received, totalSize);
+
+	return received == totalSize;
+}
+
 ADB::ADB() {
 }
 
@@ -254,6 +313,14 @@ bool ADB::PushFile(QFileInfo src, QString dst) {
 	}
 	this->ShellCommandPrivileged(QString("chmod 777 %1").arg(dst));
 	return this->GetRemoteSize(dst);
+}
+
+bool ADB::PullFile(QString src, QFileInfo dst) {
+	if (dst.isDir()) {
+		dst = QFileInfo(QDir(dst.absoluteFilePath()), src.section('/', -1));
+	}
+	LOGD("Pulling %s", src.toStdString().c_str());
+	return pullFileStreaming(serial.c_str(), src, dst);
 }
 
 bool ADB::InstallReplayApk() {

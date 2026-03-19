@@ -46,6 +46,7 @@ public:
     std::vector<std::string> GetPackages();
     std::string GetCurrentApp();
     bool PushFile(QFileInfo src, QString dst);
+    bool PullFile(QString src, QFileInfo dst);
     bool InstallReplayApk();
     bool PushRecordLayer(std::string package);
     bool AlreadyUploaded(QFileInfo local, QString remote);
@@ -54,6 +55,7 @@ public:
 private:
     QString runProgram(const QString& program, const QStringList& args);
     bool pushFileStreaming(std::string serial, QFileInfo src, QString dst);
+    bool pullFileStreaming(std::string serial, QString src, QFileInfo dst);
     qint64 GetRemoteSize(QString remotePath);
     std::string GetAppAbi(std::string package);
     std::string GetAppLibDir(std::string package);
