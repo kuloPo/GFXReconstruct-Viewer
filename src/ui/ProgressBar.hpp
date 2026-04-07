@@ -33,7 +33,9 @@ public:
     ProgressBar(QString text);
     ~ProgressBar();
     void update(int percent);
+    void setMax(int max);
     void close();
+    void sleep(int ms);
 
 private:
     class ProgressDialog;

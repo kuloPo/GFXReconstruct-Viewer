@@ -28,7 +28,10 @@
 #include <QStandardPaths>
 
 #include <filesystem>
+#include <chrono>
+#include <thread>
 #include "common.hpp"
+#include "ProgressBar.hpp"
 
 StartupWindow::StartupWindow(QWidget* parent)
     : QWidget(parent), ui(new Ui::StartupWindow), m_eCurrentPage(Page::Startup), m_ListModel(this)
@@ -274,6 +277,14 @@ void StartupWindow::OnNextButtonClicked() {
             std::string args = ui->InputLineEdit->text().toStdString();
             adb.ShellCommand(std::format("am force-stop {}", m_strSelectedPackage));
             adb.ShellCommand(std::format("am start -n {}/{} {}", m_strSelectedPackage, m_strSelectedActivity, args));
+
+            ProgressBar progress(QString("Recording"));
+            progress.setMax(0);
+            progress.update(0);
+            progress.sleep(5000);
+            while (m_strSelectedPackage == adb.GetCurrentApp()) {
+                progress.sleep(1000);
+            }
 
             break;
         }

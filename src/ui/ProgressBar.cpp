@@ -26,9 +26,12 @@
 #include <QProgressDialog>
 #include <QProgressBar>
 #include <QApplication>
+#include <QThread>
 
 class ProgressBar::ProgressDialog : public QProgressDialog {
 public:
+    QProgressBar* innerBar;
+
     ProgressDialog(QWidget* parent) : QProgressDialog(parent)
     {
         setWindowModality(Qt::ApplicationModal);
@@ -37,10 +40,10 @@ public:
         setMinimumDuration(0);
         setWindowFlag(Qt::FramelessWindowHint, true);
 
-        auto* bar = new QProgressBar(this);
-        bar->setRange(0, 100);
-        bar->setTextVisible(false);
-        setBar(bar);
+        innerBar = new QProgressBar(this);
+        innerBar->setRange(0, 100);
+        innerBar->setTextVisible(false);
+        setBar(innerBar);
     }
 };
 
@@ -61,8 +64,22 @@ void ProgressBar::update(int percent) {
     QCoreApplication::processEvents();
 }
 
+void ProgressBar::setMax(int max) {
+    bar->setRange(0, max);
+    bar->innerBar->setRange(0, max);
+    QCoreApplication::processEvents();
+}
+
 void ProgressBar::close() {
     bar->hide();
     bar->deleteLater();
     QCoreApplication::processEvents();
+}
+
+void ProgressBar::sleep(int ms) {
+    QDeadlineTimer deadline(ms);
+    while (!deadline.hasExpired()) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+        QThread::msleep(10);
+    }
 }
