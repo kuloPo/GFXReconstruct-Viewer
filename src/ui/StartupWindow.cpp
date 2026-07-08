@@ -297,7 +297,7 @@ void StartupWindow::OnNextButtonClicked() {
             QString localReplayFilePath = ui->InputLineEdit->text();
             QFileInfo localReplayFilePathInfo(localReplayFilePath);
             QString replayFileName = localReplayFilePathInfo.fileName();
-            QString remoteReplayFilePath = "/data/user/0/com.lunarg.gfxreconstruct.replay/files/" + replayFileName;
+            QString remoteReplayFilePath = "/sdcard/Download/" + replayFileName;
 
             if (localReplayFilePath.isEmpty()) {
                 LOGW("No replay file is selected");

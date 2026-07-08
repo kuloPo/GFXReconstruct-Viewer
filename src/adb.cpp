@@ -320,16 +320,18 @@ bool ADB::InstallReplayApk() {
 		return false;
 	}
 
-	if (!this->PushFile(localReplayApkPath, "/sdcard/Download/gfxr_replay.apk")) {
-		LOGW("Failed to push replay APK to /sdcard/Download/");
+	if (!this->PushFile(localReplayApkPath, "/data/local/tmp/gfxr_replay.apk")) {
+		LOGW("Failed to push replay APK to /data/local/tmp/");
 		return false;
 	}
 
-	std::string result = this->ShellCommand("pm install -g -t -r /sdcard/Download/gfxr_replay.apk");
+	std::string result = this->ShellCommand("pm install -g -t -r /data/local/tmp/gfxr_replay.apk");
 	if (result.find("success") == std::string::npos && result.find("Success") == std::string::npos) {
 		LOGW("Failed to install replay APK");
 		return false;
 	}
+
+	this->ShellCommand("appops set --uid com.lunarg.gfxreconstruct.replay MANAGE_EXTERNAL_STORAGE allow");
 
 	return true;
 }
