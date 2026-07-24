@@ -49,3 +49,4 @@ make
 
 - [GFXReconstruct](https://github.com/LunarG/gfxreconstruct)
 - [Qt](https://www.qt.io/)
+- [simdjson](https://github.com/simdjson/simdjson)
