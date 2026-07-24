@@ -25,8 +25,11 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QString>
 
 #include "ui_MainWindow.h"
+
+#include "simdjson.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -36,5 +39,9 @@ public:
     ~MainWindow();
 
 private:
+    void LoadFile(const QString& filePath);
+
     Ui::MainWindow* ui;
+    simdjson::padded_string m_Json;
+    simdjson::dom::element m_Doc;
 };

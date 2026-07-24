@@ -24,7 +24,8 @@
 
 #include "MainWindow.hpp"
 
-#include "simdjson.h"
+#include <QTimer>
+
 #include "common.hpp"
 
 MainWindow::MainWindow(const QString& filePath, QWidget* parent)
@@ -33,12 +34,22 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     ui->setupUi(this);
     showMaximized();
 
-    std::string path = filePath.toStdString();
-    LOGD("MainWindow created, file: %s", path.c_str());
+    LOGD("MainWindow created, file: %s", filePath.toStdString().c_str());
 
-    simdjson::ondemand::parser parser;
-    simdjson::padded_string json;
-    auto error = simdjson::padded_string::load(path).get(json);
+    QTimer::singleShot(0, this, [this, filePath]() {
+        LoadFile(filePath);
+    });
+}
+
+MainWindow::~MainWindow() {
+    delete ui;
+    LOGD("MainWindow destroyed");
+}
+
+void MainWindow::LoadFile(const QString& filePath) {
+    std::string path = filePath.toStdString();
+
+    auto error = simdjson::padded_string::load(path).get(m_Json);
     if (error) {
         LOGW("Failed to load \"%s\": %s.\n\n"
              "The file may have been moved, deleted, or is locked by another process.",
@@ -46,8 +57,8 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
         return;
     }
 
-    simdjson::ondemand::document doc;
-    error = parser.iterate(json).get(doc);
+    simdjson::dom::parser parser;
+    error = parser.parse(m_Json).get(m_Doc);
     if (error) {
         LOGW("Failed to parse \"%s\": %s.\n\n"
              "The file may be corrupted or is not a valid GFXReconstruct capture.",
@@ -55,10 +66,8 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
         return;
     }
 
-    uint64_t frameCount = 1;
-
-    simdjson::ondemand::array arr;
-    error = doc.get_array().get(arr);
+    simdjson::dom::array arr;
+    error = m_Doc.get_array().get(arr);
     if (error) {
         LOGW("Unexpected JSON structure in \"%s\": %s.\n\n"
              "The file does not contain a valid GFXReconstruct capture array.",
@@ -66,23 +75,19 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
         return;
     }
 
+    uint64_t frameCount = 1;
     for (auto elem : arr) {
-        simdjson::ondemand::object obj;
-        error = elem.get_object().get(obj);
-        if (error) continue;
+        simdjson::dom::object obj;
+        if (elem.get_object().get(obj)) continue;
 
-        if (obj.find_field("function").error() == simdjson::SUCCESS) {
+        try {
             std::string_view name;
-            if (obj["function"]["name"].get(name) == simdjson::SUCCESS && name == "vkQueuePresentKHR") {
+            if (!obj["function"]["name"].get(name) && name == "vkQueuePresentKHR") {
                 frameCount++;
             }
+        } catch (const simdjson::simdjson_error&) {
         }
     }
 
     LOGD("Total frames: %llu", static_cast<unsigned long long>(frameCount));
-}
-
-MainWindow::~MainWindow() {
-    delete ui;
-    LOGD("MainWindow destroyed");
 }
