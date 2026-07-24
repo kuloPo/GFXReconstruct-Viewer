@@ -23,12 +23,18 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
 
+if(NOT EXISTS ${CMAKE_SOURCE_DIR}/thirdparty/simdjson/singleheader/simdjson.h)
+    message(FATAL_ERROR "simdjson submodule not found. Run: git submodule update --init --recursive")
+endif()
+list(APPEND SRC_LIST thirdparty/simdjson/singleheader/simdjson.cpp)
+
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGLWidgets)
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_include_directories(${PROJECT_NAME} PRIVATE src/ui)
+target_include_directories(${PROJECT_NAME} PRIVATE thirdparty/simdjson/singleheader)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
