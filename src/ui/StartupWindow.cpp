@@ -26,6 +26,9 @@
 #include "MainWindow.hpp"
 
 #include <QFileDialog>
+#include <QFile>
+#include <QFileInfo>
+#include <QProcess>
 #include <QStandardPaths>
 
 #include <filesystem>
@@ -397,6 +400,23 @@ void StartupWindow::OnOpenButtonClicked() {
         }
 
         file.close();
+
+        QString converter = QStandardPaths::findExecutable("gfxrecon-convert");
+        if (converter.isEmpty()) {
+            LOGE("gfxrecon-convert not found in PATH. "
+                 "Please download the Vulkan SDK and add it to your PATH.");
+            return;
+        }
+
+        QProcess process;
+        process.start(converter, {filepath});
+
+        ProgressBar progress(QString("Converting %1").arg(fileInfo.fileName()));
+        progress.setMax(0);
+        progress.update(0);
+        while (process.state() != QProcess::NotRunning) {
+            progress.sleep(1000);
+        }
     }
 
     MainWindow* mainWindow = new MainWindow(filepath);
