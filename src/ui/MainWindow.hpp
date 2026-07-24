@@ -26,6 +26,7 @@
 
 #include <QMainWindow>
 #include <QString>
+#include <vector>
 
 #include "ui_MainWindow.h"
 
@@ -40,8 +41,11 @@ public:
 
 private:
     void LoadFile(const QString& filePath);
+    size_t GetFrameCount() const;
+    size_t GetIndexCount() const;
 
     Ui::MainWindow* ui;
     simdjson::padded_string m_Json;
     simdjson::dom::element m_Doc;
+    std::vector<size_t> m_FrameBoundaries;
 };

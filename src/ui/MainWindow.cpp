@@ -75,19 +75,34 @@ void MainWindow::LoadFile(const QString& filePath) {
         return;
     }
 
-    uint64_t frameCount = 1;
+    size_t idx = 0;
+    m_FrameBoundaries.push_back(0);
     for (auto elem : arr) {
         simdjson::dom::object obj;
-        if (elem.get_object().get(obj)) continue;
+        if (elem.get_object().get(obj)) { idx++; continue; }
 
         try {
             std::string_view name;
             if (!obj["function"]["name"].get(name) && name == "vkQueuePresentKHR") {
-                frameCount++;
+                m_FrameBoundaries.push_back(idx + 1);
             }
         } catch (const simdjson::simdjson_error&) {
         }
+        idx++;
+    }
+    if (m_FrameBoundaries.back() != idx) {
+        m_FrameBoundaries.push_back(idx);
     }
 
-    LOGD("Total frames: %llu", static_cast<unsigned long long>(frameCount));
+    LOGD("Total frames: %zu", GetFrameCount());
+}
+
+size_t MainWindow::GetFrameCount() const {
+    if (m_FrameBoundaries.empty()) return 0;
+    return m_FrameBoundaries.size() - 1;
+}
+
+size_t MainWindow::GetIndexCount() const {
+    if (m_FrameBoundaries.empty()) return 0;
+    return m_FrameBoundaries.back();
 }
