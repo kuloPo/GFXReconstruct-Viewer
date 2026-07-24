@@ -23,6 +23,7 @@
  *******************************************************************************/
 
 #include "StartupWindow.hpp"
+#include "MainWindow.hpp"
 
 #include <QFileDialog>
 #include <QStandardPaths>
@@ -373,6 +374,18 @@ void StartupWindow::OnBackButtonClicked() {
 void StartupWindow::OnOpenButtonClicked() {
     LOGD("Open button clicked");
     QString filepath = PopFileOpenWindow();
+
+    if (filepath.isEmpty()) {
+        LOGD("No file selected");
+        return;
+    }
+
+    LOGD("Selected file: %s", filepath.toStdString().c_str());
+
+    MainWindow* mainWindow = new MainWindow(filepath);
+    mainWindow->show();
+
+    this->close();
 }
 
 QString StartupWindow::PopFileOpenWindow() {
