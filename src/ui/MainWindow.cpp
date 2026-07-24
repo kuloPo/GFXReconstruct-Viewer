@@ -24,6 +24,7 @@
 
 #include "MainWindow.hpp"
 
+#include "simdjson.h"
 #include "common.hpp"
 
 MainWindow::MainWindow(const QString& filePath, QWidget* parent)
@@ -32,7 +33,53 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     ui->setupUi(this);
     showMaximized();
 
-    LOGD("MainWindow created, file: %s", filePath.toStdString().c_str());
+    std::string path = filePath.toStdString();
+    LOGD("MainWindow created, file: %s", path.c_str());
+
+    simdjson::ondemand::parser parser;
+    simdjson::padded_string json;
+    auto error = simdjson::padded_string::load(path).get(json);
+    if (error) {
+        LOGW("Failed to load \"%s\": %s.\n\n"
+             "The file may have been moved, deleted, or is locked by another process.",
+             path.c_str(), simdjson::error_message(error));
+        return;
+    }
+
+    simdjson::ondemand::document doc;
+    error = parser.iterate(json).get(doc);
+    if (error) {
+        LOGW("Failed to parse \"%s\": %s.\n\n"
+             "The file may be corrupted or is not a valid GFXReconstruct capture.",
+             path.c_str(), simdjson::error_message(error));
+        return;
+    }
+
+    uint64_t frameCount = 1;
+
+    simdjson::ondemand::array arr;
+    error = doc.get_array().get(arr);
+    if (error) {
+        LOGW("Unexpected JSON structure in \"%s\": %s.\n\n"
+             "The file does not contain a valid GFXReconstruct capture array.",
+             path.c_str(), simdjson::error_message(error));
+        return;
+    }
+
+    for (auto elem : arr) {
+        simdjson::ondemand::object obj;
+        error = elem.get_object().get(obj);
+        if (error) continue;
+
+        if (obj.find_field("function").error() == simdjson::SUCCESS) {
+            std::string_view name;
+            if (obj["function"]["name"].get(name) == simdjson::SUCCESS && name == "vkQueuePresentKHR") {
+                frameCount++;
+            }
+        }
+    }
+
+    LOGD("Total frames: %llu", static_cast<unsigned long long>(frameCount));
 }
 
 MainWindow::~MainWindow() {
