@@ -382,6 +382,23 @@ void StartupWindow::OnOpenButtonClicked() {
 
     LOGD("Selected file: %s", filepath.toStdString().c_str());
 
+    QFileInfo fileInfo(filepath);
+    if (fileInfo.suffix().toLower() != "json") {
+        QFile file(filepath);
+        if (!file.open(QIODevice::ReadOnly)) {
+            LOGW("Cannot open file: %s", filepath.toStdString().c_str());
+            return;
+        }
+
+        char magic[4];
+        if (file.read(magic, 4) != 4 || memcmp(magic, "GFXR", 4) != 0) {
+            LOGW("File is not a valid GFXReconstruct capture: %s", filepath.toStdString().c_str());
+            return;
+        }
+
+        file.close();
+    }
+
     MainWindow* mainWindow = new MainWindow(filepath);
     mainWindow->show();
 
