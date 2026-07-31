@@ -125,6 +125,7 @@ size_t MainWindow::GetFrameCount() const {
 }
 
 void MainWindow::OnFrameChanged(int frame) {
+    LOGD("Jump to frame %d", frame);
     m_CurrentFrame = frame;
     ui->frameLabel->setText(
         QString("%1/%2").arg(frame).arg(GetFrameCount() - 1));
