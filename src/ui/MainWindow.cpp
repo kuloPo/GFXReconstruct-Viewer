@@ -84,7 +84,7 @@ void MainWindow::LoadFile(const QString& filePath) {
         return;
     }
 
-    size_t idx = 0;
+    size_t idx = 0, lastApiIdx = 0;
     m_FrameBoundaries.push_back(0);
     for (auto elem : arr) {
         simdjson::dom::object obj;
@@ -92,15 +92,20 @@ void MainWindow::LoadFile(const QString& filePath) {
 
         try {
             std::string_view name;
-            if (!obj["function"]["name"].get(name) && name == "vkQueuePresentKHR") {
-                m_FrameBoundaries.push_back(idx + 1);
+            if (!obj["function"]["name"].get(name)) {
+                lastApiIdx = idx;
+                if (name == "vkQueuePresentKHR") {
+                    m_FrameBoundaries.push_back(idx + 1);
+                }
             }
         } catch (const simdjson::simdjson_error&) {
         }
         idx++;
     }
-    if (m_FrameBoundaries.back() != idx) {
-        m_FrameBoundaries.push_back(idx);
+    // The trace file is not ended with vkQueuePresentKHR
+    // Use lastApiIdx to prevent non-API block like EndMarker
+    if (m_FrameBoundaries.back() != lastApiIdx + 1) {
+        m_FrameBoundaries.push_back(lastApiIdx + 1);
     }
 
     LOGD("Total frames: %zu", GetFrameCount());
