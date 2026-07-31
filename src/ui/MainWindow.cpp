@@ -95,6 +95,21 @@ void MainWindow::LoadFile(const QString& filePath) {
     }
 
     LOGD("Total frames: %zu", GetFrameCount());
+
+    for (auto elem : arr) {
+        simdjson::dom::object obj;
+        if (elem.get_object().get(obj)) continue;
+
+        try {
+            std::string_view name;
+            if (!obj["function"]["name"].get(name)) {
+                ui->apiListView->addItem(
+                    QString::fromUtf8(name.data(), static_cast<int>(name.size())));
+            }
+        } catch (const simdjson::simdjson_error&) {
+            ui->apiListView->addItem("(non-API entry)");
+        }
+    }
 }
 
 size_t MainWindow::GetFrameCount() const {
