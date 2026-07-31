@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QEvent>
 #include <QString>
 #include <vector>
 
@@ -38,14 +39,22 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(const QString& filePath, QWidget* parent = nullptr);
     ~MainWindow();
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
     void LoadFile(const QString& filePath);
     size_t GetFrameCount() const;
-    size_t GetIndexCount() const;
+    void UpdateApiList();
 
+private slots:
+    void OnFrameChanged(int frame);
+
+private:
     Ui::MainWindow* ui;
     simdjson::padded_string m_Json;
+    simdjson::dom::parser m_Parser;
     simdjson::dom::element m_Doc;
     std::vector<size_t> m_FrameBoundaries;
+    std::vector<simdjson::dom::element> m_Entries;
+    int m_CurrentFrame = 0;
 };
