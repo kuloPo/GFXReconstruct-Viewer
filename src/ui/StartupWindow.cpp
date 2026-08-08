@@ -417,6 +417,14 @@ void StartupWindow::OnOpenButtonClicked() {
         while (process.state() != QProcess::NotRunning) {
             progress.sleep(1000);
         }
+
+        QFileInfo info(filepath);
+        QString baseName = info.completeBaseName();
+        if (baseName.isEmpty()) {
+            LOGW("Cannot extract base name from: %s", filepath.toStdString().c_str());
+            return;
+        }
+        filepath = info.absolutePath() + "/" + baseName + ".json";
     }
 
     MainWindow* mainWindow = new MainWindow(filepath);
@@ -427,7 +435,9 @@ void StartupWindow::OnOpenButtonClicked() {
 
 QString StartupWindow::PopFileOpenWindow() {
     static QString defaultPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-    QString filepath = QFileDialog::getOpenFileName(this, "Open capture", defaultPath);
+    QString filepath = QFileDialog::getOpenFileName(
+        this, "Open capture", defaultPath,
+        "GFXReconstruct Files (*.gfxr *.json)");
     defaultPath = filepath;
     return filepath;
 }
