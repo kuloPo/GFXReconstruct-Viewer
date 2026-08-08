@@ -46,15 +46,19 @@ private:
     size_t GetFrameCount() const;
     void UpdateApiList();
 
+    struct EntryRange {
+        size_t start = 0;
+        size_t len = 0;
+    };
+
 private slots:
     void OnFrameChanged(int frame);
 
 private:
     Ui::MainWindow* ui;
     simdjson::padded_string m_Json;
-    simdjson::dom::parser m_Parser;
-    simdjson::dom::element m_Doc;
+    simdjson::dom::parser m_EntryParser;
+    std::vector<EntryRange> m_EntryRanges;
     std::vector<size_t> m_FrameBoundaries;
-    std::vector<simdjson::dom::element> m_Entries;
     int m_CurrentFrame = 0;
 };

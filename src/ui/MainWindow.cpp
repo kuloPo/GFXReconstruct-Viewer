@@ -67,7 +67,12 @@ void MainWindow::LoadFile(const QString& filePath) {
         return;
     }
 
-    error = m_Parser.parse(m_Json).get(m_Doc);
+    // Build a byte-range index for every top-level entry. The on-demand
+    // scanner is local, so its large scratch buffers are released as soon as
+    // the index is ready; only m_Json + m_EntryRanges stay resident.
+    simdjson::ondemand::parser scanner;
+    simdjson::ondemand::document doc;
+    error = scanner.iterate(m_Json).get(doc);
     if (error) {
         LOGW("Failed to parse \"%s\": %s.\n\n"
              "The file may be corrupted or is not a valid GFXReconstruct capture.",
@@ -75,8 +80,8 @@ void MainWindow::LoadFile(const QString& filePath) {
         return;
     }
 
-    simdjson::dom::array arr;
-    error = m_Doc.get_array().get(arr);
+    simdjson::ondemand::array arr;
+    error = doc.get_array().get(arr);
     if (error) {
         LOGW("Unexpected JSON structure in \"%s\": %s.\n\n"
              "The file does not contain a valid GFXReconstruct capture array.",
@@ -85,10 +90,42 @@ void MainWindow::LoadFile(const QString& filePath) {
     }
 
     size_t idx = 0, lastApiIdx = 0;
+    m_FrameBoundaries.clear();
     m_FrameBoundaries.push_back(0);
-    for (auto elem : arr) {
+    m_EntryRanges.clear();
+
+    for (auto elemResult : arr) {
+        simdjson::ondemand::value elem;
+        if (elemResult.get(elem)) {
+            m_EntryRanges.push_back({0, 0});
+            idx++;
+            continue;
+        }
+
+        std::string_view raw;
+        if (elem.raw_json().get(raw)) {
+            m_EntryRanges.push_back({0, 0});
+            idx++;
+            continue;
+        }
+
+        const size_t start = static_cast<size_t>(raw.data() - m_Json.data());
+        const size_t len = raw.size();
+        m_EntryRanges.push_back({start, len});
+
+        simdjson::padded_string_view view(
+            raw.data(), len,
+            m_Json.size() - start + simdjson::SIMDJSON_PADDING);
+        simdjson::dom::element entry;
+        if (m_EntryParser.parse(view).get(entry)) {
+            idx++;
+            continue;
+        }
         simdjson::dom::object obj;
-        if (elem.get_object().get(obj)) { idx++; continue; }
+        if (entry.get_object().get(obj)) {
+            idx++;
+            continue;
+        }
 
         try {
             std::string_view name;
@@ -109,11 +146,6 @@ void MainWindow::LoadFile(const QString& filePath) {
     }
 
     LOGD("Total frames: %zu", GetFrameCount());
-
-    m_Entries.reserve(idx);
-    for (auto elem : arr) {
-        m_Entries.push_back(elem);
-    }
 
     ui->frameSlider->setRange(0, static_cast<int>(GetFrameCount() - 1));
     OnFrameChanged(ui->frameSlider->value());
@@ -138,8 +170,18 @@ void MainWindow::UpdateApiList() {
     size_t end = m_FrameBoundaries[m_CurrentFrame + 1];
 
     for (size_t i = start; i < end; i++) {
+        const EntryRange& range = m_EntryRanges[i];
+        if (range.len == 0) continue;
+
+        simdjson::padded_string_view view(
+            m_Json.data() + range.start,
+            range.len,
+            m_Json.size() - range.start + simdjson::SIMDJSON_PADDING);
+        simdjson::dom::element entry;
+        if (m_EntryParser.parse(view).get(entry)) continue;
+
         simdjson::dom::object obj;
-        if (m_Entries[i].get_object().get(obj)) continue;
+        if (entry.get_object().get(obj)) continue;
 
         try {
             std::string_view name;
