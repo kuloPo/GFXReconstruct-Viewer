@@ -27,6 +27,7 @@
 #include <QHeaderView>
 #include <QTimer>
 #include <QTableWidgetItem>
+#include <QVariant>
 #include <QWheelEvent>
 #include <QResizeEvent>
 
@@ -38,21 +39,23 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     ui->setupUi(this);
     showMaximized();
 
-    ui->apiTableView->setColumnCount(3);
-    ui->apiTableView->setHorizontalHeaderLabels({
-        QStringLiteral("Index"),
-        QStringLiteral("Return"),
-        QStringLiteral("Name"),
-    });
     ui->apiTableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->apiTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->apiTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    ui->apiTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->apiTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->apiTableView->setSelectionMode(QAbstractItemView::SingleSelection);
-    ui->apiTableView->verticalHeader()->setVisible(false);
-    ui->apiTableView->verticalHeader()->setDefaultSectionSize(24);
-    ui->apiTableView->setAlternatingRowColors(true);
+    ui->argsTableView->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->argsTableView->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+
+    m_ArgsTable = ui->argsTableView;
+    auto* tableSplitter = ui->tableSplitter;
+    tableSplitter->setStretchFactor(0, 3);
+    tableSplitter->setStretchFactor(1, 2);
+    tableSplitter->setSizes({ 600, 250 });
+    ui->verticalLayout->setStretch(0, 1);
+
+    connect(ui->apiTableView, &QTableWidget::currentCellChanged,
+        this, [this](int row, int, int, int) {
+            UpdateArgsTable(row);
+        });
 
     connect(ui->frameSlider, &QSlider::valueChanged, this, &MainWindow::OnFrameChanged);
     ui->frameSlider->installEventFilter(this);
@@ -218,12 +221,75 @@ void MainWindow::UpdateApiList() {
 
                 const int row = ui->apiTableView->rowCount();
                 ui->apiTableView->insertRow(row);
-                ui->apiTableView->setItem(row, 0, new QTableWidgetItem(QString::number(index)));
+                auto* indexItem = new QTableWidgetItem(QString::number(index));
+                indexItem->setData(Qt::UserRole, QVariant::fromValue<qulonglong>(i));
+                ui->apiTableView->setItem(row, 0, indexItem);
                 ui->apiTableView->setItem(row, 1, new QTableWidgetItem(returnValue));
                 ui->apiTableView->setItem(row, 2, new QTableWidgetItem(QAnyStringView(name).toString()));
             }
         } catch (const simdjson::simdjson_error&) {
         }
+    }
+
+    if (ui->apiTableView->rowCount() > 0) {
+        ui->apiTableView->selectRow(0);
+    } else {
+        m_ArgsTable->Clear();
+    }
+}
+
+void MainWindow::UpdateArgsTable(int row) {
+    if (row < 0 || row >= ui->apiTableView->rowCount()) {
+        m_ArgsTable->Clear();
+        return;
+    }
+
+    QTableWidgetItem* indexItem = ui->apiTableView->item(row, 0);
+    if (indexItem == nullptr) {
+        m_ArgsTable->Clear();
+        return;
+    }
+
+    bool ok = false;
+    const qulonglong entryIndex = indexItem->data(Qt::UserRole).toULongLong(&ok);
+    if (!ok || entryIndex >= m_EntryRanges.size()) {
+        m_ArgsTable->Clear();
+        return;
+    }
+
+    const EntryRange& range = m_EntryRanges[entryIndex];
+    if (range.len == 0) {
+        m_ArgsTable->Clear();
+        return;
+    }
+
+    simdjson::padded_string_view view(
+        m_Json.data() + range.start,
+        range.len,
+        m_Json.size() - range.start + simdjson::SIMDJSON_PADDING);
+
+    simdjson::dom::element entry;
+    if (m_EntryParser.parse(view).get(entry)) {
+        m_ArgsTable->Clear();
+        return;
+    }
+
+    simdjson::dom::object obj;
+    if (entry.get_object().get(obj)) {
+        m_ArgsTable->Clear();
+        return;
+    }
+
+    try {
+        simdjson::dom::element argsElem;
+        if (obj["function"]["args"].get(argsElem) != simdjson::SUCCESS) {
+            m_ArgsTable->Clear();
+            return;
+        }
+
+        m_ArgsTable->SetArgs(argsElem);
+    } catch (const simdjson::simdjson_error&) {
+        m_ArgsTable->Clear();
     }
 }
 
