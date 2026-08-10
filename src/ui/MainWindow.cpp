@@ -24,7 +24,9 @@
 
 #include "MainWindow.hpp"
 
+#include <QHeaderView>
 #include <QTimer>
+#include <QTableWidgetItem>
 #include <QWheelEvent>
 #include <QResizeEvent>
 
@@ -35,6 +37,23 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
 {
     ui->setupUi(this);
     showMaximized();
+
+    ui->apiTableView->setColumnCount(3);
+    ui->apiTableView->setHorizontalHeaderLabels({
+        QStringLiteral("Index"),
+        QStringLiteral("Return"),
+        QStringLiteral("Name"),
+    });
+    ui->apiTableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->apiTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    ui->apiTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    ui->apiTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->apiTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->apiTableView->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->apiTableView->verticalHeader()->setVisible(false);
+    ui->apiTableView->verticalHeader()->setDefaultSectionSize(24);
+    ui->apiTableView->setAlternatingRowColors(true);
+
     connect(ui->frameSlider, &QSlider::valueChanged, this, &MainWindow::OnFrameChanged);
     ui->frameSlider->installEventFilter(this);
     connect(ui->prevFrameButton, &QPushButton::clicked, this, [this]() {
@@ -165,7 +184,7 @@ void MainWindow::OnFrameChanged(int frame) {
 }
 
 void MainWindow::UpdateApiList() {
-    ui->apiListView->clear();
+    ui->apiTableView->setRowCount(0);
     size_t start = m_FrameBoundaries[m_CurrentFrame];
     size_t end = m_FrameBoundaries[m_CurrentFrame + 1];
 
@@ -186,11 +205,24 @@ void MainWindow::UpdateApiList() {
         try {
             std::string_view name;
             if (!obj["function"]["name"].get(name)) {
-                ui->apiListView->addItem(QString::fromUtf8(
-                    name.data(), static_cast<int>(name.size())));
+                uint64_t index = 0;
+                obj["index"].get_uint64().get(index);
+
+                QString returnValue;
+                simdjson::dom::element returnElem;
+                if (obj["function"]["return"].get(returnElem) == simdjson::SUCCESS) {
+                    std::string_view text;
+                    returnElem.get_string().get(text);
+                    returnValue = QAnyStringView(text).toString();
+                }
+
+                const int row = ui->apiTableView->rowCount();
+                ui->apiTableView->insertRow(row);
+                ui->apiTableView->setItem(row, 0, new QTableWidgetItem(QString::number(index)));
+                ui->apiTableView->setItem(row, 1, new QTableWidgetItem(returnValue));
+                ui->apiTableView->setItem(row, 2, new QTableWidgetItem(QAnyStringView(name).toString()));
             }
         } catch (const simdjson::simdjson_error&) {
-            ui->apiListView->addItem("(non-API entry)");
         }
     }
 }
