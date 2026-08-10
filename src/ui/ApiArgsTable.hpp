@@ -24,43 +24,20 @@
 
 #pragma once
 
-#include <QMainWindow>
-#include <QEvent>
 #include <QString>
-#include <vector>
-
-#include "ui_MainWindow.h"
+#include <QTreeWidget>
 
 #include "simdjson.h"
 
-class MainWindow : public QMainWindow {
-    Q_OBJECT
-
+class ApiArgsTable : public QTreeWidget {
 public:
-    explicit MainWindow(const QString& filePath, QWidget* parent = nullptr);
-    ~MainWindow();
-    bool eventFilter(QObject* obj, QEvent* event) override;
+    explicit ApiArgsTable(QWidget* parent = nullptr);
+
+    void SetArgs(const simdjson::dom::element& args);
+    void Clear();
 
 private:
-    void LoadFile(const QString& filePath);
-    size_t GetFrameCount() const;
-    void UpdateApiList();
-    void UpdateArgsTable(int row);
-
-    struct EntryRange {
-        size_t start = 0;
-        size_t len = 0;
-    };
-
-private slots:
-    void OnFrameChanged(int frame);
-
-private:
-    Ui::MainWindow* ui;
-    simdjson::padded_string m_Json;
-    simdjson::dom::parser m_EntryParser;
-    std::vector<EntryRange> m_EntryRanges;
-    std::vector<size_t> m_FrameBoundaries;
-    ApiArgsTable* m_ArgsTable = nullptr;
-    int m_CurrentFrame = 0;
+    void AddValueItem(QTreeWidgetItem* parent,
+                      const QString& name,
+                      const simdjson::dom::element& value);
 };
