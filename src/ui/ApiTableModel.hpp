@@ -24,32 +24,40 @@
 
 #pragma once
 
-#include <QMainWindow>
-#include <QEvent>
+#include <QAbstractTableModel>
 #include <QString>
+#include <QVariant>
 
-#include "ui_MainWindow.h"
+#include <cstdint>
+#include <vector>
 
-#include "ApiTableModel.hpp"
+#include "simdjson.h"
 
-class MainWindow : public QMainWindow {
-    Q_OBJECT
+struct Range {
+    size_t start = 0;
+    size_t len = 0;
+};
 
+class ApiTableModel : public QAbstractTableModel {
 public:
-    explicit MainWindow(const QString& filePath, QWidget* parent = nullptr);
-    ~MainWindow();
-    bool eventFilter(QObject* obj, QEvent* event) override;
+    explicit ApiTableModel(QObject* parent = nullptr);
+
+    bool OnLoadFile(const QString& filePath);
+    void SetFrame(int frame);
+
+    size_t RawEntryIndex(int row) const;
+    simdjson::dom::object GetEntryObject(size_t entryIndex) const;
+    size_t GetFrameCount() const;
+
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+    QVariant data(const QModelIndex& index, int role) const override;
 
 private:
-    void LoadFile(const QString& filePath);
-    void UpdateArgsTable(int row);
-
-private slots:
-    void OnFrameChanged(int frame);
-
-private:
-    Ui::MainWindow* ui;
-    ApiArgsTable* m_ArgsTable = nullptr;
-    ApiTableModel* m_ApiModel = nullptr;
-    int m_CurrentFrame = 0;
+    simdjson::padded_string m_Json;
+    mutable simdjson::dom::parser m_EntryParser;
+    std::vector<Range> m_EntryRanges;
+    std::vector<std::vector<size_t>> m_ApiEntries;
+    int m_Frame = 0;
 };

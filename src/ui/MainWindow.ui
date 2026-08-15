@@ -46,7 +46,7 @@ QSplitter::handle:hover {
     background-color: #4A6FA5;
 }</string>
       </property>
-      <widget class="QTableWidget" name="apiTableView">
+      <widget class="QTableView" name="apiTableView">
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -54,7 +54,7 @@ QSplitter::handle:hover {
         </size>
        </property>
        <property name="styleSheet">
-        <string notr="true">QTableWidget {
+        <string notr="true">QTableView {
     background-color: #353535;
     color: #CCCCCC;
     alternate-background-color: #3A3A3A;
@@ -62,7 +62,7 @@ QSplitter::handle:hover {
     selection-background-color: #4A6FA5;
     selection-color: #FFFFFF;
 }
-QTableWidget::item {
+QTableView::item {
     padding: 1px 4px;
 }
 QHeaderView::section {
@@ -96,21 +96,6 @@ QTableCornerButton::section {
        <attribute name="verticalHeaderDefaultSectionSize">
         <number>24</number>
        </attribute>
-       <column>
-        <property name="text">
-         <string>Index</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Return</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Name</string>
-        </property>
-       </column>
       </widget>
       <widget class="ApiArgsTable" name="argsTableView">
        <property name="minimumSize">

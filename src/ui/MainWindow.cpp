@@ -25,9 +25,8 @@
 #include "MainWindow.hpp"
 
 #include <QHeaderView>
+#include <QItemSelectionModel>
 #include <QTimer>
-#include <QTableWidgetItem>
-#include <QVariant>
 #include <QWheelEvent>
 #include <QResizeEvent>
 
@@ -39,8 +38,13 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     ui->setupUi(this);
     showMaximized();
 
-    ui->apiTableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    ui->apiTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    m_ApiModel = new ApiTableModel(this);
+    ui->apiTableView->setModel(m_ApiModel);
+
+    ui->apiTableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
+    ui->apiTableView->horizontalHeader()->resizeSection(0, 100);
+    ui->apiTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
+    ui->apiTableView->horizontalHeader()->resizeSection(1, 180);
     ui->apiTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     ui->argsTableView->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->argsTableView->header()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -52,9 +56,9 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     tableSplitter->setSizes({ 600, 250 });
     ui->verticalLayout->setStretch(0, 1);
 
-    connect(ui->apiTableView, &QTableWidget::currentCellChanged,
-        this, [this](int row, int, int, int) {
-            UpdateArgsTable(row);
+    connect(ui->apiTableView->selectionModel(), &QItemSelectionModel::currentRowChanged,
+        this, [this](const QModelIndex& current, const QModelIndex&) {
+            UpdateArgsTable(current.row());
         });
 
     connect(ui->frameSlider, &QSlider::valueChanged, this, &MainWindow::OnFrameChanged);
@@ -79,206 +83,33 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::LoadFile(const QString& filePath) {
-    std::string path = filePath.toStdString();
+    if (!m_ApiModel->OnLoadFile(filePath)) return;
 
-    auto error = simdjson::padded_string::load(path).get(m_Json);
-    if (error) {
-        LOGW("Failed to load \"%s\": %s.\n\n"
-             "The file may have been moved, deleted, or is locked by another process.",
-             path.c_str(), simdjson::error_message(error));
-        return;
-    }
+    LOGD("Total frames: %zu", m_ApiModel->GetFrameCount());
 
-    // Build a byte-range index for every top-level entry. The on-demand
-    // scanner is local, so its large scratch buffers are released as soon as
-    // the index is ready; only m_Json + m_EntryRanges stay resident.
-    simdjson::ondemand::parser scanner;
-    simdjson::ondemand::document doc;
-    error = scanner.iterate(m_Json).get(doc);
-    if (error) {
-        LOGW("Failed to parse \"%s\": %s.\n\n"
-             "The file may be corrupted or is not a valid GFXReconstruct capture.",
-             path.c_str(), simdjson::error_message(error));
-        return;
-    }
-
-    simdjson::ondemand::array arr;
-    error = doc.get_array().get(arr);
-    if (error) {
-        LOGW("Unexpected JSON structure in \"%s\": %s.\n\n"
-             "The file does not contain a valid GFXReconstruct capture array.",
-             path.c_str(), simdjson::error_message(error));
-        return;
-    }
-
-    size_t idx = 0, lastApiIdx = 0;
-    m_FrameBoundaries.clear();
-    m_FrameBoundaries.push_back(0);
-    m_EntryRanges.clear();
-
-    for (auto elemResult : arr) {
-        simdjson::ondemand::value elem;
-        if (elemResult.get(elem)) {
-            m_EntryRanges.push_back({0, 0});
-            idx++;
-            continue;
-        }
-
-        std::string_view raw;
-        if (elem.raw_json().get(raw)) {
-            m_EntryRanges.push_back({0, 0});
-            idx++;
-            continue;
-        }
-
-        const size_t start = static_cast<size_t>(raw.data() - m_Json.data());
-        const size_t len = raw.size();
-        m_EntryRanges.push_back({start, len});
-
-        simdjson::padded_string_view view(
-            raw.data(), len,
-            m_Json.size() - start + simdjson::SIMDJSON_PADDING);
-        simdjson::dom::element entry;
-        if (m_EntryParser.parse(view).get(entry)) {
-            idx++;
-            continue;
-        }
-        simdjson::dom::object obj;
-        if (entry.get_object().get(obj)) {
-            idx++;
-            continue;
-        }
-
-        try {
-            std::string_view name;
-            if (!obj["function"]["name"].get(name)) {
-                lastApiIdx = idx;
-                if (name == "vkQueuePresentKHR") {
-                    m_FrameBoundaries.push_back(idx + 1);
-                }
-            }
-        } catch (const simdjson::simdjson_error&) {
-        }
-        idx++;
-    }
-    // The trace file is not ended with vkQueuePresentKHR
-    // Use lastApiIdx to prevent non-API block like EndMarker
-    if (m_FrameBoundaries.back() != lastApiIdx + 1) {
-        m_FrameBoundaries.push_back(lastApiIdx + 1);
-    }
-
-    LOGD("Total frames: %zu", GetFrameCount());
-
-    ui->frameSlider->setRange(0, static_cast<int>(GetFrameCount() - 1));
+    ui->frameSlider->setRange(0, static_cast<int>(m_ApiModel->GetFrameCount() - 1));
     OnFrameChanged(ui->frameSlider->value());
-}
-
-size_t MainWindow::GetFrameCount() const {
-    if (m_FrameBoundaries.empty()) return 0;
-    return m_FrameBoundaries.size() - 1;
 }
 
 void MainWindow::OnFrameChanged(int frame) {
     LOGD("Jump to frame %d", frame);
     m_CurrentFrame = frame;
-    ui->frameLabel->setText(
-        QString("%1/%2").arg(frame).arg(GetFrameCount() - 1));
-    UpdateApiList();
-}
+    ui->frameLabel->setText(QString("%1/%2").arg(frame).arg(m_ApiModel->GetFrameCount() - 1));
+    m_ApiModel->SetFrame(frame);
 
-void MainWindow::UpdateApiList() {
-    ui->apiTableView->setRowCount(0);
-    size_t start = m_FrameBoundaries[m_CurrentFrame];
-    size_t end = m_FrameBoundaries[m_CurrentFrame + 1];
-
-    for (size_t i = start; i < end; i++) {
-        const EntryRange& range = m_EntryRanges[i];
-        if (range.len == 0) continue;
-
-        simdjson::padded_string_view view(
-            m_Json.data() + range.start,
-            range.len,
-            m_Json.size() - range.start + simdjson::SIMDJSON_PADDING);
-        simdjson::dom::element entry;
-        if (m_EntryParser.parse(view).get(entry)) continue;
-
-        simdjson::dom::object obj;
-        if (entry.get_object().get(obj)) continue;
-
-        try {
-            std::string_view name;
-            if (!obj["function"]["name"].get(name)) {
-                uint64_t index = 0;
-                obj["index"].get_uint64().get(index);
-
-                QString returnValue;
-                simdjson::dom::element returnElem;
-                if (obj["function"]["return"].get(returnElem) == simdjson::SUCCESS) {
-                    std::string_view text;
-                    returnElem.get_string().get(text);
-                    returnValue = QAnyStringView(text).toString();
-                }
-
-                const int row = ui->apiTableView->rowCount();
-                ui->apiTableView->insertRow(row);
-                auto* indexItem = new QTableWidgetItem(QString::number(index));
-                indexItem->setData(Qt::UserRole, QVariant::fromValue<qulonglong>(i));
-                ui->apiTableView->setItem(row, 0, indexItem);
-                ui->apiTableView->setItem(row, 1, new QTableWidgetItem(returnValue));
-                ui->apiTableView->setItem(row, 2, new QTableWidgetItem(QAnyStringView(name).toString()));
-            }
-        } catch (const simdjson::simdjson_error&) {
-        }
-    }
-
-    if (ui->apiTableView->rowCount() > 0) {
+    if (m_ApiModel->rowCount() > 0) {
         ui->apiTableView->selectRow(0);
-    } else {
+    }
+    else {
         m_ArgsTable->Clear();
     }
 }
 
 void MainWindow::UpdateArgsTable(int row) {
-    if (row < 0 || row >= ui->apiTableView->rowCount()) {
-        m_ArgsTable->Clear();
-        return;
-    }
+    LOGD("%s: row %d", __func__, row);
 
-    QTableWidgetItem* indexItem = ui->apiTableView->item(row, 0);
-    if (indexItem == nullptr) {
-        m_ArgsTable->Clear();
-        return;
-    }
-
-    bool ok = false;
-    const qulonglong entryIndex = indexItem->data(Qt::UserRole).toULongLong(&ok);
-    if (!ok || entryIndex >= m_EntryRanges.size()) {
-        m_ArgsTable->Clear();
-        return;
-    }
-
-    const EntryRange& range = m_EntryRanges[entryIndex];
-    if (range.len == 0) {
-        m_ArgsTable->Clear();
-        return;
-    }
-
-    simdjson::padded_string_view view(
-        m_Json.data() + range.start,
-        range.len,
-        m_Json.size() - range.start + simdjson::SIMDJSON_PADDING);
-
-    simdjson::dom::element entry;
-    if (m_EntryParser.parse(view).get(entry)) {
-        m_ArgsTable->Clear();
-        return;
-    }
-
-    simdjson::dom::object obj;
-    if (entry.get_object().get(obj)) {
-        m_ArgsTable->Clear();
-        return;
-    }
+    const size_t entryIndex = m_ApiModel->RawEntryIndex(row);
+    simdjson::dom::object obj = m_ApiModel->GetEntryObject(entryIndex);
 
     try {
         simdjson::dom::element argsElem;
