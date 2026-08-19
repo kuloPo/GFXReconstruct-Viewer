@@ -26,8 +26,7 @@
 
 #include <QOpenGLWidget>
 #include <QOpenGLExtraFunctions>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLBuffer>
+#include <vector>
 
 class Background : public QOpenGLWidget, protected QOpenGLExtraFunctions
 {
@@ -42,14 +41,15 @@ private:
     void paintGL() override;
 
     GLuint compileShader(GLenum type, const char* source);
-    GLuint createShaderProgram(GLuint vertexShader, GLuint fragmentShader, GLuint computeShader);
+    GLuint createShaderProgram(GLuint vertexShader, GLuint fragmentShader);
+    void generateGeometry(std::vector<GLfloat>& positions, std::vector<GLfloat>& data, int i32Seed) const;
 
 private:
     int i32TrianglePerRow, i32TrianglePerCol;
     int i32TriangleCount, i32VertexCount;
 
-    GLuint vbo, ebo, colorBuffer;
-    GLuint vao;
-    GLuint tbo;
-    GLuint computeProgram, renderProgram;
+    GLuint vbo;
+    GLuint dataBuffer;
+    GLuint renderProgram;
+    GLuint vao = 0;
 };

@@ -43,13 +43,8 @@ int main(int argc, char *argv[]) {
     LOGD("Hello GFXReconstruct Viewer!");
 
     QSurfaceFormat format;
-#ifdef __APPLE__
-    format.setVersion(4, 1);
+    format.setVersion(3, 3);
     format.setProfile(QSurfaceFormat::CoreProfile);
-#else
-    format.setVersion(4, 3);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-#endif
     QSurfaceFormat::setDefaultFormat(format);
 
     QApplication app(argc, argv);

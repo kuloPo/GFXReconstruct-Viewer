@@ -25,126 +25,55 @@
 #include "StartupWindowBackground.hpp"
 #include "common.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <ctime>
+#include <random>
+
 const GLfloat fTriangleSize = 45;
 const GLfloat fTriangleHeight = (sqrtf(3.0f) * fTriangleSize) / 2.0f;
 
-const int WORKGROUP_SIZE = 128;
+const char* strVertexShaderSource = R"(
+    #version 330 core
 
-const char* strComputeShaderSource = R"(
-    #version 430 core
-    
-    layout(local_size_x = 128) in;
-    
-    layout(std430, binding = 0) buffer VertexBuffer {
-        float vertices[];
-    };
+    layout(location = 0) in vec2 aPosition;
+    layout(location = 1) in vec2 aData;
 
-    layout(std430, binding = 1) buffer IndexBuffer {
-        uint indexes[];
-    };
+    uniform int i32Width;
+    uniform int i32Height;
 
-    layout(rgba32f, binding = 0) uniform imageBuffer imageData;
-    
-    uniform float fTriangleSize;
-    uniform float fTriangleHeight;
-    uniform int i32TrianglePerRow;
-    uniform int i32TrianglePerCol;
-    uniform int i32TriangleCount;
-    uniform int i32VertexCount;
-    uniform int i32Seed;
-    
+    out vec2 vData;
+
+    void main() {
+        float x = aPosition.x;
+        float y = i32Height - aPosition.y;
+
+        gl_Position = vec4(
+            (x / i32Width) * 2.0 - 1.0,
+            (y / i32Height) * 2.0 - 1.0,
+            0.0, 1.0
+        );
+
+        vData = aData;
+    }
+    )";
+
+const char* strFragmentShaderSource = R"(
+    #version 330 core
+
+    in vec2 vData;
+
+    out vec4 FragColor;
+
     vec3 hsv2rgb(vec3 c) {
         vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
         vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
         return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
     }
 
-    float random(int i32Seed, uint idx) {
-        uint combined = i32Seed ^ (idx * 0x9E3779B9u);
-    
-        uint state = combined * 747796405u + 2891336453u;
-        uint word = (state >> ((state >> 28u) + 4u)) ^ state;
-        uint multiplier = 277803737u;
-    
-        return float(word * multiplier) / 4294967295.0;
-    }
-
     void main() {
-        uint idx = gl_GlobalInvocationID.x;
-        int row;
-        int col;
-        float x_offset;
-        float y_offset;
-        
-        if (idx >= i32TriangleCount) return;
-        
-        col = int(idx) / i32TrianglePerRow;
-        row = int(idx) % i32TrianglePerRow;
-
-        if (col % 2 == 0) {
-            indexes[idx * 3] = (col / 2) * (i32TrianglePerRow + 1) + row;
-            indexes[idx * 3 + 1] = indexes[idx * 3] + 1;
-            indexes[idx * 3 + 2] = indexes[idx * 3 + 1] + i32TrianglePerRow + 1 - (col / 2 % 2);
-        }
-        else {
-            indexes[idx * 3] = (col / 2) * (i32TrianglePerRow + 1) + row + (col / 2 % 2);
-            indexes[idx * 3 + 1] = indexes[idx * 3] + i32TrianglePerRow + 1 - (col / 2 % 2);
-            indexes[idx * 3 + 2] = indexes[idx * 3 + 1] + 1;
-        }
-
-        float v = random(i32Seed, idx);
-        vec3 color = hsv2rgb(vec3(293.0f / 360.0f, 0.18f, v));
-        float d = distance(vec2(i32TrianglePerRow / 2 * fTriangleSize, 0), vec2(row * fTriangleSize, col / 2 * fTriangleHeight));
-        float alpha =  1.0f - clamp(d / (i32TrianglePerCol / 2.5 * fTriangleHeight), 0.0f, 1.0f);
-
-        imageStore(imageData, int(idx), vec4(color, alpha * v));
-
-        if (idx >= i32VertexCount) return;
-
-        col = int(idx) / (i32TrianglePerRow + 1);
-        row = int(idx) % (i32TrianglePerRow + 1);
-        
-        x_offset = float(col) * fTriangleHeight;
-        y_offset = float(row) * fTriangleSize;
-        
-        if (col % 2 == 1) {
-            y_offset -= fTriangleSize / 2.0f;
-        }
-        
-        vertices[idx * 2] = x_offset;
-        vertices[idx * 2 + 1] = y_offset;
-    }
-    )";
-
-const char* strVertexShaderSource = R"(
-    #version 430 core
-
-    layout(location = 0) in vec2 aPosition;
-    
-    uniform int i32Width;
-    uniform int i32Height;
-    
-    void main() {
-        float x = aPosition.x;
-        float y = i32Height - aPosition.y;
-        
-        gl_Position = vec4(
-            (x / i32Width) * 2.0 - 1.0,
-            (y / i32Height) * 2.0 - 1.0,
-            0.0, 1.0
-        );
-    }
-    )";
-
-const char* strFragmentShaderSource = R"(
-    #version 430 core
-    
-    layout(rgba32f, binding = 0) uniform imageBuffer imageData;
-
-    out vec4 FragColor;
-    
-    void main() {
-        FragColor = imageLoad(imageData, gl_PrimitiveID);
+        FragColor = vec4(hsv2rgb(vec3(293.0 / 360.0, 0.18, vData.x)), vData.y);
     }
     )";
 
@@ -164,12 +93,11 @@ GLuint Background::compileShader(GLenum type, const char* source) {
     return shader;
 }
 
-GLuint Background::createShaderProgram(GLuint vertexShader = 0, GLuint fragmentShader = 0, GLuint computeShader = 0) {
+GLuint Background::createShaderProgram(GLuint vertexShader = 0, GLuint fragmentShader = 0) {
     GLuint program = glCreateProgram();
 
     if (vertexShader) glAttachShader(program, vertexShader);
     if (fragmentShader) glAttachShader(program, fragmentShader);
-    if (computeShader) glAttachShader(program, computeShader);
 
     glLinkProgram(program);
 
@@ -190,101 +118,123 @@ Background::Background(QWidget* parent)
     setAttribute(Qt::WA_TransparentForMouseEvents);
 }
 
-Background::~Background()
-{
-    glDeleteProgram(renderProgram);
-    glDeleteProgram(computeProgram);
-    glDeleteTextures(1, &tbo);
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &colorBuffer);
-    glDeleteBuffers(1, &ebo);
-    glDeleteBuffers(1, &vbo);
-
+Background::~Background() {
     makeCurrent();
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &dataBuffer);
+    glDeleteProgram(renderProgram);
     doneCurrent();
 }
 
-void Background::initializeGL()
-{
+void Background::initializeGL() {
     initializeOpenGLFunctions();
-    
+
     glClearColor(77.0f / 255, 77.0f / 255, 138.0f / 255, 1.0f);
 
-#if !defined(__APPLE__)
     i32TrianglePerRow = this->size().height() / fTriangleSize + 1;
     i32TrianglePerCol = this->size().width() / fTriangleHeight + 1;
     i32TriangleCount = i32TrianglePerRow * i32TrianglePerCol * 2;
-    i32VertexCount = (i32TrianglePerRow + 1) * (i32TrianglePerCol + 1);
+    i32VertexCount = i32TriangleCount * 3;
 
-    GLuint computeShader = compileShader(GL_COMPUTE_SHADER, strComputeShaderSource);
     GLuint vertexShader = compileShader(GL_VERTEX_SHADER, strVertexShaderSource);
     GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, strFragmentShaderSource);
 
-    computeProgram = createShaderProgram(0, 0, computeShader);
     renderProgram = createShaderProgram(vertexShader, fragmentShader);
 
-    glDeleteShader(computeShader);
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    glGenBuffers(1, &vbo);
-    glGenBuffers(1, &ebo);
-    glGenBuffers(1, &colorBuffer);
+    std::vector<GLfloat> positions;
+    std::vector<GLfloat> data;
+    generateGeometry(positions, data, static_cast<int>(std::time(0)));
 
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(positions.size() * sizeof(GLfloat)), positions.data(), GL_STATIC_DRAW);
+
+    glGenBuffers(1, &dataBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, dataBuffer);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(data.size() * sizeof(GLfloat)), data.data(), GL_STATIC_DRAW);
+
+    glDeleteVertexArrays(1, &vao);
+    vao = 0;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, i32VertexCount * 2 * sizeof(GLfloat), nullptr, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
+    glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, i32TriangleCount * 3 * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, colorBuffer);
-    glBufferData(GL_UNIFORM_BUFFER, i32TriangleCount * 4 * sizeof(float), nullptr, GL_STATIC_DRAW);
-
-    glGenTextures(1, &tbo);
-    glBindTexture(GL_TEXTURE_BUFFER, tbo);
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, colorBuffer);
-    glBindImageTexture(0, tbo, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vbo);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ebo);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, colorBuffer);
-
-    glUseProgram(computeProgram);
-
-    glUniform1f(glGetUniformLocation(computeProgram, "fTriangleSize"), fTriangleSize);
-    glUniform1f(glGetUniformLocation(computeProgram, "fTriangleHeight"), fTriangleHeight);
-    glUniform1i(glGetUniformLocation(computeProgram, "i32TrianglePerRow"), i32TrianglePerRow);
-    glUniform1i(glGetUniformLocation(computeProgram, "i32TrianglePerCol"), i32TrianglePerCol);
-    glUniform1i(glGetUniformLocation(computeProgram, "i32TriangleCount"), i32TriangleCount);
-    glUniform1i(glGetUniformLocation(computeProgram, "i32VertexCount"), i32VertexCount);
-    glUniform1i(glGetUniformLocation(computeProgram, "i32Seed"), static_cast<GLint>(std::time(0)));
-
-    int workgroupCount = (i32TriangleCount + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
-    glDispatchCompute(workgroupCount, 1, 1);
-
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
+    glBindBuffer(GL_ARRAY_BUFFER, dataBuffer);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
+    glEnableVertexAttribArray(1);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (void*)0);
-    glEnableVertexAttribArray(0);
-#endif
 }
 
-void Background::paintGL()
-{
+void Background::generateGeometry(std::vector<GLfloat>& positions, std::vector<GLfloat>& data, int i32Seed) const {
+    positions.resize(i32VertexCount * 2);
+    data.resize(i32VertexCount * 2);
+
+    const float center_x = static_cast<float>(i32TrianglePerRow / 2) * fTriangleSize;
+    const float radius = (static_cast<float>(i32TrianglePerCol) / 2.5f) * fTriangleHeight;
+
+    std::mt19937 rng(static_cast<uint32_t>(i32Seed));
+    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+    for (uint32_t idx = 0; idx < static_cast<uint32_t>(i32TriangleCount); ++idx) {
+        const int col = static_cast<int>(idx) / i32TrianglePerRow;
+        const int row = static_cast<int>(idx) % i32TrianglePerRow;
+
+        uint32_t vertex[3];
+        if (col % 2 == 0) {
+            vertex[0] = static_cast<uint32_t>((col / 2) * (i32TrianglePerRow + 1) + row);
+            vertex[1] = vertex[0] + 1;
+            vertex[2] = vertex[1] + static_cast<uint32_t>(i32TrianglePerRow + 1 - ((col / 2) % 2));
+        } else {
+            vertex[0] = static_cast<uint32_t>((col / 2) * (i32TrianglePerRow + 1) + row + ((col / 2) % 2));
+            vertex[1] = vertex[0] + static_cast<uint32_t>(i32TrianglePerRow + 1 - ((col / 2) % 2));
+            vertex[2] = vertex[1] + 1;
+        }
+
+        const float v = dist(rng);
+
+        const float dx = static_cast<float>(row) * fTriangleSize - center_x;
+        const float dy = static_cast<float>(col / 2) * fTriangleHeight;
+        const float d = std::sqrtf(dx * dx + dy * dy);
+        const float alpha = (1.0f - std::min(1.0f, std::max(0.0f, d / radius))) * v;
+
+        for (uint32_t i = 0; i < 3; ++i) {
+            const uint32_t slot = idx * 3 + i;
+
+            const int vertex_col = static_cast<int>(vertex[i]) / (i32TrianglePerRow + 1);
+            const int vertex_row = static_cast<int>(vertex[i]) % (i32TrianglePerRow + 1);
+
+            float x_offset = static_cast<float>(vertex_col) * fTriangleHeight;
+            float y_offset = static_cast<float>(vertex_row) * fTriangleSize;
+            if (vertex_col % 2 == 1) {
+                y_offset -= fTriangleSize / 2.0f;
+            }
+
+            positions[slot * 2] = x_offset;
+            positions[slot * 2 + 1] = y_offset;
+
+            data[slot * 2] = v;
+            data[slot * 2 + 1] = alpha;
+        }
+    }
+}
+
+void Background::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT);
 
-#if !defined(__APPLE__)
+    glBindVertexArray(vao);
     glUseProgram(renderProgram);
 
     glUniform1i(glGetUniformLocation(renderProgram, "i32Width"), static_cast<GLint>(this->size().width()));
     glUniform1i(glGetUniformLocation(renderProgram, "i32Height"), static_cast<GLint>(this->size().height()));
 
-    glDrawElements(GL_TRIANGLES, i32TriangleCount * 3, GL_UNSIGNED_INT, 0);
-#endif
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(i32VertexCount));
 }
