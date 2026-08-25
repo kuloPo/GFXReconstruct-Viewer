@@ -135,9 +135,10 @@ size_t ApiTableModel::RawEntryIndex(int row) const {
     return m_FilteredRowIndexes[row];
 }
 
-size_t ApiTableModel::FindRowByEntry(size_t entryIndex) const {
-    for (size_t row = 0; row < m_FilteredRowIndexes.size(); ++row) {
-        if (m_FilteredRowIndexes[row] == entryIndex) return row;
+int ApiTableModel::FindRowByEntry(size_t entryIndex) const {
+    auto it = std::lower_bound(m_FilteredRowIndexes.begin(), m_FilteredRowIndexes.end(), entryIndex);
+    if (it != m_FilteredRowIndexes.end() && *it == entryIndex) {
+        return static_cast<int>(it - m_FilteredRowIndexes.begin());
     }
     return -1;
 }

@@ -47,7 +47,7 @@ public:
     void SetFilter(const QString& filter);
 
     size_t RawEntryIndex(int row) const;
-    size_t FindRowByEntry(size_t entryIndex) const;
+    int FindRowByEntry(size_t entryIndex) const;
     simdjson::dom::object GetEntryObject(size_t entryIndex) const;
     size_t GetFrameCount() const;
     size_t GetFrameTotalAPICount() const;
