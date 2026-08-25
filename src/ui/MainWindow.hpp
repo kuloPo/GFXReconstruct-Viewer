@@ -43,9 +43,11 @@ public:
 private:
     void LoadFile(const QString& filePath);
     void UpdateArgsTable(int row);
+    void UpdateListingLabel();
 
 private slots:
     void OnFrameChanged(int frame);
+    void OnTextChanged(const QString& text);
 
 private:
     Ui::MainWindow* ui;

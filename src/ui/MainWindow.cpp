@@ -26,6 +26,7 @@
 
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QLineEdit>
 #include <QTimer>
 #include <QWheelEvent>
 #include <QResizeEvent>
@@ -54,7 +55,9 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     tableSplitter->setStretchFactor(0, 3);
     tableSplitter->setStretchFactor(1, 2);
     tableSplitter->setSizes({ 600, 250 });
-    ui->verticalLayout->setStretch(0, 1);
+    ui->verticalLayout->setStretch(ui->verticalLayout->indexOf(ui->tableSplitter), 1);
+
+    ui->apiFilterEdit->setFixedWidth(250);
 
     connect(ui->apiTableView->selectionModel(), &QItemSelectionModel::currentRowChanged,
         this, [this](const QModelIndex& current, const QModelIndex&) {
@@ -69,6 +72,9 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     connect(ui->nextFrameButton, &QPushButton::clicked, this, [this]() {
         ui->frameSlider->setValue(ui->frameSlider->value() + 1);
     });
+
+    connect(ui->apiFilterEdit, &QLineEdit::textChanged, this, &MainWindow::OnTextChanged);
+    UpdateListingLabel();
 
     LOGD("MainWindow created, file: %s", filePath.toStdString().c_str());
 
@@ -102,6 +108,43 @@ void MainWindow::OnFrameChanged(int frame) {
     }
     else {
         m_ArgsTable->Clear();
+    }
+    UpdateListingLabel();
+}
+
+void MainWindow::OnTextChanged(const QString& text) {
+    QItemSelectionModel* selection = ui->apiTableView->selectionModel();
+    int oldRow = -1;
+    if (selection->currentIndex().isValid()) {
+        oldRow = selection->currentIndex().row();
+    }
+    else if (!selection->selectedRows().isEmpty()) {
+        oldRow = selection->selectedRows().first().row();
+    }
+    const size_t selectedEntry = oldRow >= 0 ? m_ApiModel->RawEntryIndex(oldRow) : -1;
+
+    m_ApiModel->SetFilter(text);
+
+    int targetRow = oldRow >= 0 ? m_ApiModel->FindRowByEntry(selectedEntry) : -1;
+    if (targetRow < 0 && m_ApiModel->rowCount() > 0) {
+        targetRow = 0;
+    }
+    if (targetRow >= 0) {
+        ui->apiTableView->selectRow(targetRow);
+    }
+    else {
+        m_ArgsTable->Clear();
+    }
+    UpdateListingLabel();
+}
+
+void MainWindow::UpdateListingLabel() {
+    const int total = m_ApiModel->GetFrameTotalAPICount();
+    if (ui->apiFilterEdit->text().isEmpty()) {
+        ui->apiListingLabel->setText(QStringLiteral("Listing %1 API Calls").arg(total));
+    }
+    else {
+        ui->apiListingLabel->setText(QStringLiteral("Listing %1/%2 API Calls").arg(m_ApiModel->rowCount()).arg(total));
     }
 }
 

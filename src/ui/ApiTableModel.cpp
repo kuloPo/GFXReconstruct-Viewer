@@ -110,6 +110,7 @@ bool ApiTableModel::OnLoadFile(const QString& filePath) {
     }
 
     m_Frame = 0;
+    RefreshFilteredRow();
     endResetModel();
     return true;
 }
@@ -118,11 +119,27 @@ void ApiTableModel::SetFrame(int frame) {
     if (frame == m_Frame) return;
     beginResetModel();
     m_Frame = frame;
+    RefreshFilteredRow();
+    endResetModel();
+}
+
+void ApiTableModel::SetFilter(const QString& filter) {
+    if (filter == m_FilterString) return;
+    m_FilterString = filter;
+    beginResetModel();
+    RefreshFilteredRow();
     endResetModel();
 }
 
 size_t ApiTableModel::RawEntryIndex(int row) const {
-    return m_ApiEntries[m_Frame][row];
+    return m_FilteredRowIndexes[row];
+}
+
+size_t ApiTableModel::FindRowByEntry(size_t entryIndex) const {
+    for (size_t row = 0; row < m_FilteredRowIndexes.size(); ++row) {
+        if (m_FilteredRowIndexes[row] == entryIndex) return row;
+    }
+    return -1;
 }
 
 simdjson::dom::object ApiTableModel::GetEntryObject(size_t entryIndex) const {
@@ -142,11 +159,29 @@ size_t ApiTableModel::GetFrameCount() const {
     return m_ApiEntries.size();
 }
 
-int ApiTableModel::rowCount(const QModelIndex& parent) const {
-    if (parent.isValid() || GetFrameCount() == 0) {
-        return 0;
+size_t ApiTableModel::GetFrameTotalAPICount() const {
+    return m_ApiEntries.empty() ? 0 : m_ApiEntries[m_Frame].size();
+}
+
+void ApiTableModel::RefreshFilteredRow() {
+    m_FilteredRowIndexes.clear();
+    const auto& frame = m_ApiEntries[m_Frame];
+    for (const size_t entryIndex : frame) {
+        if (m_FilterString.isEmpty() || EntryNameMatches(entryIndex, m_FilterString)) {
+            m_FilteredRowIndexes.push_back(entryIndex);
+        }
     }
-    return m_ApiEntries[m_Frame].size();
+}
+
+bool ApiTableModel::EntryNameMatches(size_t entryIndex, const QString& needle) const {
+    const simdjson::dom::object obj = GetEntryObject(entryIndex);
+    std::string_view name;
+    obj["function"]["name"].get(name);
+    return QAnyStringView(name).toString().contains(needle, Qt::CaseInsensitive);
+}
+
+int ApiTableModel::rowCount(const QModelIndex& parent) const {
+    return parent.isValid() ? 0 : m_FilteredRowIndexes.size();
 }
 
 int ApiTableModel::columnCount(const QModelIndex& parent) const {
@@ -169,7 +204,7 @@ QVariant ApiTableModel::headerData(int section, Qt::Orientation orientation, int
 QVariant ApiTableModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || role != Qt::DisplayRole) return {};
 
-    simdjson::dom::object obj = GetEntryObject(m_ApiEntries[m_Frame][index.row()]);
+    simdjson::dom::object obj = GetEntryObject(m_FilteredRowIndexes[index.row()]);
 
     try {
         switch (index.column()) {
