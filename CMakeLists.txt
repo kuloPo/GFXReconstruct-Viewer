@@ -57,7 +57,7 @@ target_compile_options(${PROJECT_NAME}
 target_compile_options(${PROJECT_NAME}
     PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/WX>
-        $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Werror>
+        $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Werror>
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)

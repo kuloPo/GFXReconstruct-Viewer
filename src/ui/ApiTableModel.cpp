@@ -29,6 +29,13 @@
 
 #include "common.hpp"
 
+#define SIMDJSON_CHECK_ERROR(expr, fmt, ...) \
+    do { \
+        if (const auto e_ = (expr); e_) { \
+            LOGE(fmt ": %s", ##__VA_ARGS__, simdjson::error_message(e_)); \
+        } \
+    } while (false)
+
 ApiTableModel::ApiTableModel(QObject* parent)
     : QAbstractTableModel(parent)
 {
@@ -73,10 +80,10 @@ bool ApiTableModel::OnLoadFile(const QString& filePath) {
 
     for (auto elemResult : arr) {
         simdjson::ondemand::value elem;
-        elemResult.get(elem);
+        SIMDJSON_CHECK_ERROR(elemResult.get(elem), "element %zu", idx);
 
         std::string_view raw;
-        elem.raw_json().get(raw);
+        SIMDJSON_CHECK_ERROR(elem.raw_json().get(raw), "element %zu", idx);
 
         const size_t start = static_cast<size_t>(raw.data() - m_Json.data());
         const size_t len = raw.size();
@@ -87,10 +94,10 @@ bool ApiTableModel::OnLoadFile(const QString& filePath) {
             m_Json.size() - start + simdjson::SIMDJSON_PADDING);
 
         simdjson::dom::element entry;
-        m_EntryParser.parse(view).get(entry);
+        SIMDJSON_CHECK_ERROR(m_EntryParser.parse(view).get(entry), "element %zu", idx);
 
         simdjson::dom::object obj;
-        entry.get_object().get(obj);
+        SIMDJSON_CHECK_ERROR(entry.get_object().get(obj), "element %zu", idx);
 
         try {
             std::string_view name;
@@ -151,8 +158,8 @@ simdjson::dom::object ApiTableModel::GetEntryObject(size_t entryIndex) const {
         m_Json.data() + range.start,
         range.len,
         m_Json.size() - range.start + simdjson::SIMDJSON_PADDING);
-    m_EntryParser.parse(view).get(entry);
-    entry.get_object().get(obj);
+    SIMDJSON_CHECK_ERROR(m_EntryParser.parse(view).get(entry), "entry %zu", entryIndex);
+    SIMDJSON_CHECK_ERROR(entry.get_object().get(obj), "entry %zu", entryIndex);
     return obj;
 }
 
@@ -177,7 +184,7 @@ void ApiTableModel::RefreshFilteredRow() {
 bool ApiTableModel::EntryNameMatches(size_t entryIndex, const QString& needle) const {
     const simdjson::dom::object obj = GetEntryObject(entryIndex);
     std::string_view name;
-    obj["function"]["name"].get(name);
+    SIMDJSON_CHECK_ERROR(obj["function"]["name"].get(name), "entry %zu has no function name", entryIndex);
     return QAnyStringView(name).toString().contains(needle, Qt::CaseInsensitive);
 }
 
@@ -211,14 +218,14 @@ QVariant ApiTableModel::data(const QModelIndex& index, int role) const {
         switch (index.column()) {
             case 0: {
                 uint64_t value = 0;
-                obj["index"].get_uint64().get(value);
+                SIMDJSON_CHECK_ERROR(obj["index"].get_uint64().get(value), "row %d, column 0", index.row());
                 return QString::number(value);
             }
             case 1: {
                 simdjson::dom::element returnElem;
                 if (obj["function"]["return"].get(returnElem) == simdjson::SUCCESS) {
                     std::string_view text;
-                    returnElem.get_string().get(text);
+                    SIMDJSON_CHECK_ERROR(returnElem.get_string().get(text), "row %d, column 1", index.row());
                     return QAnyStringView(text).toString();
                 }
                 else {
@@ -227,7 +234,7 @@ QVariant ApiTableModel::data(const QModelIndex& index, int role) const {
             }
             case 2: {
                 std::string_view name;
-                obj["function"]["name"].get(name);
+                SIMDJSON_CHECK_ERROR(obj["function"]["name"].get(name), "row %d, column 2", index.row());
                 return QAnyStringView(name).toString();
             }
             default: {
