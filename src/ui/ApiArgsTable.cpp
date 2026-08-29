@@ -82,6 +82,7 @@ void ApiArgsTable::SetArgs(const simdjson::dom::element& args) {
     for (auto field : obj) {
         AddValueItem(invisibleRootItem(), QAnyStringView(field.key).toString(), field.value);
     }
+    expandAll();
 }
 
 void ApiArgsTable::Clear() {
