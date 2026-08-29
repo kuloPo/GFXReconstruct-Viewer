@@ -21,6 +21,12 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
+# QTBUG-137687: Qt <= 6.8.3 links -framework AGL, removed from the macOS 26 SDK
+if(APPLE AND NOT TARGET WrapOpenGL::WrapOpenGL)
+    add_library(WrapOpenGL::WrapOpenGL INTERFACE IMPORTED)
+    set_target_properties(WrapOpenGL::WrapOpenGL PROPERTIES INTERFACE_LINK_LIBRARIES "-framework OpenGL")
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
 
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/thirdparty/simdjson/singleheader/simdjson.h)
