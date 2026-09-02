@@ -7,18 +7,18 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          qt-version: '6.8.3'
+          version: '6.8.3'
       - name: Configure
         run: cmake -B build -A x64 -DWINDEPLOYQT_EXECUTABLE="$env:QT_ROOT_DIR/bin/windeployqt.exe"
       - name: Build
         run: cmake --build build --config Release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: GFXReconstruct-Viewer-windows
           path: build\Release
