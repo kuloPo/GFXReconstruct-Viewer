@@ -31,6 +31,7 @@
 #include <QWheelEvent>
 #include <QResizeEvent>
 
+#include "JsonWrapper.hpp"
 #include "common.hpp"
 
 MainWindow::MainWindow(const QString& filePath, QWidget* parent)
@@ -46,7 +47,9 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     ui->apiTableView->horizontalHeader()->resizeSection(0, 100);
     ui->apiTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
     ui->apiTableView->horizontalHeader()->resizeSection(1, 180);
-    ui->apiTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    ui->apiTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
+    ui->apiTableView->horizontalHeader()->resizeSection(2, 250);
+    ui->apiTableView->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
     ui->argsTableView->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->argsTableView->header()->setSectionResizeMode(1, QHeaderView::Stretch);
 
@@ -152,19 +155,8 @@ void MainWindow::UpdateArgsTable(int row) {
     LOGD("%s: row %d", __func__, row);
 
     const size_t entryIndex = m_ApiModel->RawEntryIndex(row);
-    simdjson::dom::object obj = m_ApiModel->GetEntryObject(entryIndex);
-
-    try {
-        simdjson::dom::element argsElem;
-        if (obj["function"]["args"].get(argsElem) != simdjson::SUCCESS) {
-            m_ArgsTable->Clear();
-            return;
-        }
-
-        m_ArgsTable->SetArgs(argsElem);
-    } catch (const simdjson::simdjson_error&) {
-        m_ArgsTable->Clear();
-    }
+    const simdjson::dom::object obj = m_ApiModel->GetEntryObject(entryIndex);
+    m_ArgsTable->SetArgs(JsonGetApiArgs(obj));
 }
 
 bool MainWindow::eventFilter(QObject* obj, QEvent* event) {

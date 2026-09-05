@@ -26,15 +26,19 @@
 
 #include <algorithm>
 #include <limits>
+#include <string_view>
+#include <unordered_map>
 
+#include "JsonWrapper.hpp"
 #include "common.hpp"
 
-#define SIMDJSON_CHECK_ERROR(expr, fmt, ...) \
-    do { \
-        if (const auto e_ = (expr); e_) { \
-            LOGE(fmt ": %s", ##__VA_ARGS__, simdjson::error_message(e_)); \
-        } \
-    } while (false)
+namespace {
+
+const std::unordered_map<std::string_view, std::vector<std::string_view>> kApiArgNames = {
+    {"vkAllocateMemory", {"/pAllocateInfo/allocationSize", "/pAllocateInfo/memoryTypeIndex", "/pMemory"}},
+};
+
+} // namespace
 
 ApiTableModel::ApiTableModel(QObject* parent)
     : QAbstractTableModel(parent)
@@ -80,24 +84,24 @@ bool ApiTableModel::OnLoadFile(const QString& filePath) {
 
     for (auto elemResult : arr) {
         simdjson::ondemand::value elem;
-        SIMDJSON_CHECK_ERROR(elemResult.get(elem), "element %zu", idx);
+        if (const auto e = elemResult.get(elem); e) {
+            LOGW("Failed to parse \"%s\": %s.\n\n"
+                 "The file may be corrupted or is not a valid GFXReconstruct capture.",
+                 path.c_str(), simdjson::error_message(e));
+            endResetModel();
+            return false;
+        }
 
         std::string_view raw;
-        SIMDJSON_CHECK_ERROR(elem.raw_json().get(raw), "element %zu", idx);
+        (void)elem.raw_json().get(raw);
 
         const size_t start = static_cast<size_t>(raw.data() - m_Json.data());
         const size_t len = raw.size();
         m_EntryRanges.push_back({start, len});
 
-        simdjson::padded_string_view view(
-            m_Json.data() + start, len,
-            m_Json.size() - start + simdjson::SIMDJSON_PADDING);
+        simdjson::dom::element entry = JsonGetElement(m_EntryParser, m_Json, start, len);
 
-        simdjson::dom::element entry;
-        SIMDJSON_CHECK_ERROR(m_EntryParser.parse(view).get(entry), "element %zu", idx);
-
-        simdjson::dom::object obj;
-        SIMDJSON_CHECK_ERROR(entry.get_object().get(obj), "element %zu", idx);
+        const simdjson::dom::object obj = JsonGetObject(entry);
 
         try {
             std::string_view name;
@@ -151,16 +155,9 @@ int ApiTableModel::FindRowByEntry(size_t entryIndex) const {
 }
 
 simdjson::dom::object ApiTableModel::GetEntryObject(size_t entryIndex) const {
-    simdjson::dom::element entry;
-    simdjson::dom::object obj;
     const Range& range = m_EntryRanges[entryIndex];
-    simdjson::padded_string_view view(
-        m_Json.data() + range.start,
-        range.len,
-        m_Json.size() - range.start + simdjson::SIMDJSON_PADDING);
-    SIMDJSON_CHECK_ERROR(m_EntryParser.parse(view).get(entry), "entry %zu", entryIndex);
-    SIMDJSON_CHECK_ERROR(entry.get_object().get(obj), "entry %zu", entryIndex);
-    return obj;
+    simdjson::dom::element entry = JsonGetElement(m_EntryParser, m_Json, range.start, range.len);
+    return JsonGetObject(entry);
 }
 
 size_t ApiTableModel::GetFrameCount() const {
@@ -183,8 +180,7 @@ void ApiTableModel::RefreshFilteredRow() {
 
 bool ApiTableModel::EntryNameMatches(size_t entryIndex, const QString& needle) const {
     const simdjson::dom::object obj = GetEntryObject(entryIndex);
-    std::string_view name;
-    SIMDJSON_CHECK_ERROR(obj["function"]["name"].get(name), "entry %zu has no function name", entryIndex);
+    const auto name = JsonGetApiName(obj);
     return QAnyStringView(name).toString().contains(needle, Qt::CaseInsensitive);
 }
 
@@ -193,7 +189,7 @@ int ApiTableModel::rowCount(const QModelIndex& parent) const {
 }
 
 int ApiTableModel::columnCount(const QModelIndex& parent) const {
-    return parent.isValid() ? 0 : 3;
+    return parent.isValid() ? 0 : 4;
 }
 
 QVariant ApiTableModel::headerData(int section, Qt::Orientation orientation, int role) const {
@@ -202,6 +198,7 @@ QVariant ApiTableModel::headerData(int section, Qt::Orientation orientation, int
         case 0: return QStringLiteral("Index");
         case 1: return QStringLiteral("Return");
         case 2: return QStringLiteral("Name");
+        case 3: return QStringLiteral("Args");
         default: {
             LOGE("ApiTableModel::headerData: unexpected section %d", section);
             return {};
@@ -216,26 +213,23 @@ QVariant ApiTableModel::data(const QModelIndex& index, int role) const {
 
     try {
         switch (index.column()) {
-            case 0: {
-                uint64_t value = 0;
-                SIMDJSON_CHECK_ERROR(obj["index"].get_uint64().get(value), "row %d, column 0", index.row());
-                return QString::number(value);
-            }
-            case 1: {
-                simdjson::dom::element returnElem;
-                if (obj["function"]["return"].get(returnElem) == simdjson::SUCCESS) {
-                    std::string_view text;
-                    SIMDJSON_CHECK_ERROR(returnElem.get_string().get(text), "row %d, column 1", index.row());
-                    return QAnyStringView(text).toString();
-                }
-                else {
-                    return {};
-                }
-            }
+            case 0: return QString::number(JsonGetApiIndex(obj));
+            case 1: return JsonGetApiReturn(obj);
             case 2: {
-                std::string_view name;
-                SIMDJSON_CHECK_ERROR(obj["function"]["name"].get(name), "row %d, column 2", index.row());
+                const auto name = JsonGetApiName(obj);
                 return QAnyStringView(name).toString();
+            }
+            case 3: {
+                const auto it = kApiArgNames.find(JsonGetApiName(obj));
+                if (it == kApiArgNames.end()) return QStringLiteral("()");
+
+                const auto args = JsonGetApiArgs(obj);
+                QString text;
+                for (const std::string_view pointer : it->second) {
+                    if (!text.isEmpty()) text += ", ";
+                    text += QAnyStringView(pointer.substr(pointer.rfind('/') + 1)).toString() + "=" + JsonElementToString(args.at_pointer(pointer).value());
+                }
+                return QStringLiteral("(%1)").arg(text);
             }
             default: {
                 LOGE("ApiTableModel::data: unexpected column %d", index.column());

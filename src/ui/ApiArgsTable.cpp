@@ -26,46 +26,7 @@
 
 #include <QTreeWidgetItem>
 
-namespace {
-
-QString JsonScalarToString(const simdjson::dom::element& value) {
-    if (value.is_string()) {
-        std::string_view text;
-        if (value.get_string().get(text) == simdjson::SUCCESS) {
-            return QAnyStringView(text).toString();
-        }
-    }
-    else if (value.is_bool()) {
-        bool b = false;
-        if (value.get_bool().get(b) == simdjson::SUCCESS) {
-            return b ? QStringLiteral("true") : QStringLiteral("false");
-        }
-    }
-    else if (value.is_int64()) {
-        int64_t n = 0;
-        if (value.get_int64().get(n) == simdjson::SUCCESS) {
-            return QString::number(static_cast<qlonglong>(n));
-        }
-    }
-    else if (value.is_uint64()) {
-        uint64_t n = 0;
-        if (value.get_uint64().get(n) == simdjson::SUCCESS) {
-            return QString::number(static_cast<qulonglong>(n));
-        }
-    }
-    else if (value.is_double()) {
-        double d = 0.0;
-        if (value.get_double().get(d) == simdjson::SUCCESS) {
-            return QString::number(d, 'g', 17);
-        }
-    }
-    else if (value.is_null()) {
-        return QStringLiteral("NULL");
-    }
-    return QStringLiteral("?");
-}
-
-} // namespace
+#include "JsonWrapper.hpp"
 
 ApiArgsTable::ApiArgsTable(QWidget* parent)
     : QTreeWidget(parent)
