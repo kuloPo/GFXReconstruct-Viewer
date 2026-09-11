@@ -24,6 +24,11 @@
 
 #include "ApiArgsTable.hpp"
 
+#include <QApplication>
+#include <QClipboard>
+#include <QContextMenuEvent>
+#include <QMenu>
+#include <QStringList>
 #include <QTreeWidgetItem>
 
 #include "JsonWrapper.hpp"
@@ -80,5 +85,37 @@ void ApiArgsTable::AddValueItem(QTreeWidgetItem* parent, const QString& name, co
     }
     else {
         item->setText(1, JsonScalarToString(value));
+    }
+}
+
+void ApiArgsTable::contextMenuEvent(QContextMenuEvent* event) {
+    QTreeWidgetItem* item = itemAt(event->pos());
+    // Triggered when right-clicking the empty area below the last row: fall back to the selected row.
+    if (item == nullptr) {
+        item = currentItem();
+    }
+    // Triggered when nothing is under the cursor and no row is selected, e.g. an empty tree: skip the menu.
+    if (item == nullptr) {
+        QTreeWidget::contextMenuEvent(event);
+        return;
+    }
+
+    const QModelIndex cellIndex = indexAt(event->pos());
+    const int col = cellIndex.isValid() ? cellIndex.column() : currentColumn();
+
+    QMenu menu(this);
+    const QAction* copyAction = menu.addAction(QStringLiteral("Copy"));
+    const QAction* copyRowAction = menu.addAction(QStringLiteral("Copy Row"));
+
+    const QAction* selected = menu.exec(event->globalPos());
+    if (selected == copyAction) {
+        QApplication::clipboard()->setText(item->text(col));
+    }
+    else if (selected == copyRowAction) {
+        QStringList rowText;
+        for (int c = 0; c < columnCount(); ++c) {
+            rowText.append(item->text(c));
+        }
+        QApplication::clipboard()->setText(rowText.join(' '));
     }
 }

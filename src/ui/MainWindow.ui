@@ -91,7 +91,7 @@ QSplitter::handle:hover {
     background-color: #4A6FA5;
 }</string>
       </property>
-      <widget class="QTableView" name="apiTableView">
+      <widget class="ApiTableView" name="apiTableView">
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -309,13 +309,18 @@ QPushButton:hover {
    </layout>
   </widget>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>ApiArgsTable</class>
-   <extends>QTreeWidget</extends>
-   <header>ApiArgsTable.hpp</header>
-  </customwidget>
- </customwidgets>
+  <customwidgets>
+   <customwidget>
+    <class>ApiArgsTable</class>
+    <extends>QTreeWidget</extends>
+    <header>ApiArgsTable.hpp</header>
+   </customwidget>
+   <customwidget>
+    <class>ApiTableView</class>
+    <extends>QTableView</extends>
+    <header>ApiTableView.hpp</header>
+   </customwidget>
+  </customwidgets>
  <resources/>
  <connections/>
 </ui>

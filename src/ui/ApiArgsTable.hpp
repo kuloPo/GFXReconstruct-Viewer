@@ -29,12 +29,17 @@
 
 #include "simdjson.h"
 
+class QContextMenuEvent;
+
 class ApiArgsTable : public QTreeWidget {
 public:
     explicit ApiArgsTable(QWidget* parent = nullptr);
 
     void SetArgs(const simdjson::dom::element& args);
     void Clear();
+
+protected:
+    void contextMenuEvent(QContextMenuEvent* event) override;
 
 private:
     void AddValueItem(QTreeWidgetItem* parent,
