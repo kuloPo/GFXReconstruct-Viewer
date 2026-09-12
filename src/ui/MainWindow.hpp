@@ -43,6 +43,7 @@ public:
 private:
     void LoadFile(const QString& filePath);
     void UpdateArgsTable(int row);
+    void UpdateArgsColumnWidth(bool allowShrink);
     void UpdateListingLabel();
 
 private slots:

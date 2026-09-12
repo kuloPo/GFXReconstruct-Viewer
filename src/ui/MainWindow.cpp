@@ -30,6 +30,7 @@
 #include <QTimer>
 #include <QWheelEvent>
 #include <QResizeEvent>
+#include <QScrollBar>
 
 #include "JsonWrapper.hpp"
 #include "common.hpp"
@@ -49,7 +50,12 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     ui->apiTableView->horizontalHeader()->resizeSection(1, 180);
     ui->apiTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
     ui->apiTableView->horizontalHeader()->resizeSection(2, 250);
-    ui->apiTableView->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
+    ui->apiTableView->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Fixed);
+    // Restrict sizeHintForColumn() to the rows currently on screen, so measuring the column never parses entries the view has not shown.
+    ui->apiTableView->horizontalHeader()->setResizeContentsPrecision(0);
+    ui->apiTableView->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+    ui->apiTableView->horizontalScrollBar()->setSingleStep(ui->apiTableView->verticalHeader()->defaultSectionSize());
+    ui->apiTableView->viewport()->installEventFilter(this);
     ui->argsTableView->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->argsTableView->header()->setSectionResizeMode(1, QHeaderView::Stretch);
 
@@ -66,6 +72,13 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
         this, [this](const QModelIndex& current, const QModelIndex&) {
             UpdateArgsTable(current.row());
         });
+
+    connect(ui->apiTableView->verticalScrollBar(), &QScrollBar::valueChanged, this, [this]() {
+        UpdateArgsColumnWidth(false);
+    });
+    connect(m_ApiModel, &QAbstractItemModel::modelReset, this, [this]() {
+        UpdateArgsColumnWidth(true);
+    });
 
     connect(ui->frameSlider, &QSlider::valueChanged, this, &MainWindow::OnFrameChanged);
     ui->frameSlider->installEventFilter(this);
@@ -159,7 +172,26 @@ void MainWindow::UpdateArgsTable(int row) {
     m_ArgsTable->SetArgs(JsonGetApiArgs(obj));
 }
 
+void MainWindow::UpdateArgsColumnWidth(bool allowShrink) {
+    QHeaderView* header = ui->apiTableView->horizontalHeader();
+    int used = 0;
+    for (int col = 0; col < 3; ++col) {
+        used += header->sectionSize(col);
+    }
+
+    int width = qMax(ui->apiTableView->sizeHintForColumn(3), ui->apiTableView->viewport()->width() - used);
+    if (!allowShrink) {
+        width = qMax(width, header->sectionSize(3));
+    }
+    header->resizeSection(3, width);
+}
+
 bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
+    if (obj == ui->apiTableView->viewport() && event->type() == QEvent::Resize) {
+        UpdateArgsColumnWidth(false);
+        return false;
+    }
+
     if (obj == ui->frameSlider) {
         if (event->type() == QEvent::Resize) {
             // Keep the step buttons 1.5x the slider height.

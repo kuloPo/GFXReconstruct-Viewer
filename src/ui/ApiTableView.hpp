@@ -31,6 +31,7 @@ class QContextMenuEvent;
 class ApiTableView : public QTableView {
 public:
     explicit ApiTableView(QWidget* parent = nullptr);
+    using QTableView::sizeHintForColumn;
 
 protected:
     void contextMenuEvent(QContextMenuEvent* event) override;
