@@ -66,7 +66,14 @@ QString JsonElementToString(const simdjson::dom::element& value) {
         return value.get_object()->size() == 0 ? QStringLiteral("{}") : QStringLiteral("{...}");
     }
     if (value.is_array()) {
-        return value.get_array()->size() == 0 ? QStringLiteral("[]") : QStringLiteral("[...]");
+        const auto array = value.get_array();
+        if (array->size() == 0) return QStringLiteral("[]");
+        QString text;
+        for (size_t i = 0; i < array->size(); i++) {
+            if (!text.isEmpty()) text += QStringLiteral(", ");
+            text += JsonElementToString(array->at(i).value());
+        }
+        return QStringLiteral("[") + text + QStringLiteral("]");
     }
     return JsonScalarToString(value);
 }
