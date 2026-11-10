@@ -31,6 +31,7 @@ class QContextMenuEvent;
 class ApiTableView : public QTableView {
 public:
     explicit ApiTableView(QWidget* parent = nullptr);
+    void scrollTo(const QModelIndex& index, QAbstractItemView::ScrollHint hint = QAbstractItemView::EnsureVisible) override;
     using QTableView::sizeHintForColumn;
 
 protected:

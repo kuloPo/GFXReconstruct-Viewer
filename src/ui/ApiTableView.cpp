@@ -29,11 +29,21 @@
 #include <QClipboard>
 #include <QContextMenuEvent>
 #include <QMenu>
+#include <QScrollBar>
 #include <QStringList>
 
 ApiTableView::ApiTableView(QWidget* parent)
     : QTableView(parent)
 {
+}
+
+void ApiTableView::scrollTo(const QModelIndex& index, QAbstractItemView::ScrollHint hint) {
+    // QAbstractItemView posts a delayed scrollTo() ~500ms after a mouse press to ensure the pressed cell is visible;
+    // with a wide Args column that drags the horizontal scrollbar to the right.
+    // Preserve the horizontal offset and only let the vertical position adjust.
+    const int offset = horizontalScrollBar()->value();
+    QTableView::scrollTo(index, hint);
+    horizontalScrollBar()->setValue(offset);
 }
 
 void ApiTableView::contextMenuEvent(QContextMenuEvent* event) {
