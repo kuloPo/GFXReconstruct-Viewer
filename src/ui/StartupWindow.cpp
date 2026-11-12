@@ -54,6 +54,7 @@ StartupWindow::StartupWindow(QWidget* parent)
     ui->SelectListView->raise();
     ui->InputLineEdit->raise();
     ui->RemoveUnsupportedBox->raise();
+    ui->RebindMemoryBox->raise();
 
     ui->NextButton->hide();
     ui->BackButton->hide();
@@ -61,6 +62,7 @@ StartupWindow::StartupWindow(QWidget* parent)
     ui->SelectListView->hide();
     ui->InputLineEdit->hide();
     ui->RemoveUnsupportedBox->hide();
+    ui->RebindMemoryBox->hide();
 
     connect(ui->CloseButton, &QPushButton::clicked, this, &QWidget::close);
     connect(ui->RecordButton, &QPushButton::clicked, this, &StartupWindow::OnRecordButtonClicked);
@@ -105,11 +107,13 @@ void StartupWindow::FlipPage(Page page) {
     ui->SelectListView->hide();
     ui->InputLineEdit->hide();
     ui->RemoveUnsupportedBox->hide();
+    ui->RebindMemoryBox->hide();
 
     ui->NextButton->setText("Next");
     ui->InputLineEdit->setText("");
     ui->InputLineEdit->setPlaceholderText("");
     ui->RemoveUnsupportedBox->setChecked(false);
+    ui->RebindMemoryBox->setChecked(false);
 
     switch (page)
     {
@@ -187,6 +191,7 @@ void StartupWindow::FlipPage(Page page) {
             ui->FileSelectButton->show();
             ui->InputLineEdit->show();
             ui->RemoveUnsupportedBox->show();
+            ui->RebindMemoryBox->show();
 
             break;
         }
@@ -333,6 +338,8 @@ void StartupWindow::OnNextButtonClicked() {
             QString args = "";
             if (ui->RemoveUnsupportedBox->isChecked())
                 args += "--remove-unsupported ";
+            if (ui->RebindMemoryBox->isChecked())
+                args += "--memory-translation rebind ";
 
             QString cmd = QString(
                 "am start -n \"com.lunarg.gfxreconstruct.replay/android.app.NativeActivity\""
